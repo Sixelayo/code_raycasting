@@ -47,7 +47,7 @@ static void newframeIMGUI(){
     ImGui::NewFrame();
 }
 
-static void enframeIMGUI(){
+static void endframeIMGUI(){
     // Rendering
     // (Your code clears your framebuffer, renders your other stuff etc.)
     ImGui::Render();

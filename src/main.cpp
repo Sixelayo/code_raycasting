@@ -70,23 +70,31 @@ int main(int argc, char* argv[]) {
     glClearColor( 0.8f, 0.3f, 0.4f, 0.0f );
     cbk::initCallback(window);
     util::loadQuad(gbl::vaoquad, gbl::vboquad);
-    {
+    {//shaders initialisation
         shaders::vert_passthrouhg = loadshader("shaders/passthrough.vert", GL_VERTEX_SHADER);
         shaders::frag_first_raytracing = loadshader("shaders/raytracing.frag", GL_FRAGMENT_SHADER);
         prog::prog1 = createShaderProgram(shaders::vert_passthrouhg, shaders::frag_first_raytracing);
     }
+    initIMGUI(window);
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
+        newframeIMGUI();
 
         glUseProgram(prog::prog1);
         {//update uniform values
             glUniform2f(glGetUniformLocation(prog::prog1, "screen"), gbl::SCREEN_X, gbl::SCREEN_Y);
         }
         util::drawQuad(gbl::vaoquad);
+        
+        //ui
+        ui::hw();
 
+
+        endframeIMGUI();
+        multiViewportIMGUI(window);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
@@ -95,6 +103,7 @@ int main(int argc, char* argv[]) {
         glfwPollEvents();
     }
 
+    shutdownIMGUI();
     glfwTerminate();
     return 0;
 }

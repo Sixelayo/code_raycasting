@@ -53,3 +53,12 @@ namespace cbk{
         glfwGetWindowSize(window, &gbl::SCREEN_X, &gbl::SCREEN_Y);
     }
 }
+
+namespace ui{
+    void hw(){
+        ImGui::Begin("coucou");
+        ImGui::Text("blablalbal");
+        ImGui::End();
+        
+    }
+}
