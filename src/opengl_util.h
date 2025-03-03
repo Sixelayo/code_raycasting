@@ -56,3 +56,29 @@ static bool linkProgram(GLuint program){
     }
     return true;
 }
+static GLuint createShaderProgram(GLuint vertexShader, GLuint fragmentShader) {
+    // Step 1: Create a shader program
+    GLuint shaderProgram = glCreateProgram();
+
+    // Step 2: Attach the vertex and fragment shaders
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+
+    // Step 3: Link the program
+    glLinkProgram(shaderProgram);
+
+    // Step 4: Check for linking errors
+    GLint success;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(shaderProgram, sizeof(infoLog), nullptr, infoLog);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+    }
+
+    // Step 5: Shaders can be deleted after linking
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProgram;
+}

@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <glad/gl.h>
-#include <opengl_util.h>
+#include "opengl_util.h"
 
 
 namespace util{
@@ -26,8 +26,14 @@ namespace util{
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
-    //hardcoded logic
-    void initShaders(GLuint vert, GLuint frag1){
-        loadshader("shaders/passthrough.vert", GL_VERTEX_SHADER);
+}
+
+namespace cbk{
+    void onResize(GLFWwindow* window, int width, int height) {
+        glViewport(0, 0, width, height);  // Adjust OpenGL viewport
+    }
+
+    void initCallback(GLFWwindow* window){
+        glfwSetFramebufferSizeCallback(window, onResize);
     }
 }

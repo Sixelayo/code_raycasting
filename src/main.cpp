@@ -25,10 +25,14 @@
 namespace gbl{
     GLuint vaoquad, vboquad;
 }
-namespace shader{
+namespace shaders{
     GLuint vert_passthrouhg;
     GLuint frag_first_raytracing;
 }
+namespace prog{
+    GLuint prog1;
+}
+
 
 
 int main(int argc, char* argv[]) {
@@ -74,18 +78,25 @@ int main(int argc, char* argv[]) {
         DEBUG("error loading glad");
         return -1;
     }
-    glClearColor( 0.8f, 0.3f, 0.4f, 0.0f );
-
-    DEBUG("loading quad ...");
-    util::loadQuad(gbl::vaoquad, gbl::vboquad);
     
+    //init a bunch of things
+    glClearColor( 0.8f, 0.3f, 0.4f, 0.0f );
+    cbk::initCallback(window);
+    util::loadQuad(gbl::vaoquad, gbl::vboquad);
+    {
+        shaders::vert_passthrouhg = loadshader("shaders/passthrough.vert", GL_VERTEX_SHADER);
+        shaders::frag_first_raytracing = loadshader("shaders/raytracing.frag", GL_FRAGMENT_SHADER);
+        prog::prog1 = createShaderProgram(shaders::vert_passthrouhg, shaders::frag_first_raytracing);
+    }
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glUseProgram(prog::prog1);
         util::drawQuad(gbl::vaoquad);
+
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
