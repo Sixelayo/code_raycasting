@@ -11,11 +11,18 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #define M_PI 3.14159265358979323846
+#define DEBUG(x) std::cout << x << "\n"
 
+
+enum ShadingMode{Normal, Position, distance_to_cam};
 
 namespace gbl{
     GLuint vaoquad, vboquad;
     int SCREEN_X, SCREEN_Y;
+
+    ShadingMode curr_mode = Normal;
+    float dtoCam_min =1.0f;
+    float dtoCam_max = 5.0f;
 }
 namespace shaders{
     GLuint vert_passthrouhg;
@@ -80,8 +87,7 @@ public:
         distance = sy / tan(glm::radians(fovy/2));
     }
     void updtSy(int width, int height){
-        sy = 2*height-1;
-        sy /= width < height ? width/height : 1.0f;
+        sy = 2.0f / (width < height ? (float)width/(float)height : 1.0f);
     }
     void init(float fov, int width, int height){
         fovy = fov;
@@ -91,6 +97,7 @@ public:
     }
 };
 Camera camera;
+
 
 namespace ui{
     void hw(Camera& cam){
@@ -105,6 +112,16 @@ namespace ui{
             ImGui::Text("Right: (%.2f, %.2f, %.2f)", cam.right.x, cam.right.y, cam.right.z);
             ImGui::Text("Up: (%.2f, %.2f, %.2f)", cam.up.x, cam.up.y, cam.up.z);
         }
+        if(ImGui::CollapsingHeader("Shading mode", ImGuiTreeNodeFlags_DefaultOpen)){
+            const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam"};
+            if(ImGui::Combo("Shading : ", (int*)&gbl::curr_mode, item_cmb1, IM_ARRAYSIZE(item_cmb1))){
+            }
+            if(gbl::curr_mode == distance_to_cam){
+                ImGui::SliderFloat("dist_min", &gbl::dtoCam_min, 0.0f, 20.0f);
+                ImGui::SliderFloat("dist_max", &gbl::dtoCam_max, 0.0f, 20.0f);
+            }
+        }
+
         ImGui::End();
     }
 }

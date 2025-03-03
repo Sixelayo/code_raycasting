@@ -19,7 +19,6 @@
 
 #define GLAD_GL_IMPLEMENTATION // Necessary for headeronly version.
 
-#define DEBUG(x) std::cout << x << "\n"
 
 
 
@@ -46,7 +45,7 @@ int main(int argc, char* argv[]) {
     
     std::srand(seed);
     std::cout << "seed initialized : " << seed << std::endl;
-
+    
     
     GLFWwindow* window;
     if (!glfwInit())
@@ -79,17 +78,23 @@ int main(int argc, char* argv[]) {
     }
     initIMGUI(window);
 
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT);
         newframeIMGUI();
-
         camera.updtRUF();
-
+        
         glUseProgram(prog::prog1);
         {//update uniform values
             glUniform2f(glGetUniformLocation(prog::prog1, "screen"), gbl::SCREEN_X, gbl::SCREEN_Y);
+            
+            //todo optim : uniform should be updated only when UI call for it !
+            glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
+            glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_min"), gbl::dtoCam_min);
+            glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_max"), gbl::dtoCam_max);
+            
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_pos"), 1, glm::value_ptr(camera.from));
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_right"), 1, glm::value_ptr(camera.right));
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_up"), 1, glm::value_ptr(camera.up));
@@ -100,8 +105,8 @@ int main(int argc, char* argv[]) {
         
         //ui
         ui::hw(camera);
-
-
+        
+        
         endframeIMGUI();
         multiViewportIMGUI(window);
 

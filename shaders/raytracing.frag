@@ -8,6 +8,10 @@ uniform vec3 cam_up;
 uniform vec3 cam_forward;
 uniform float cam_distance;
 
+uniform int shadingMode;
+uniform float dtoCam_min;
+uniform float dtoCam_max;
+
 out vec4 fColor; // final color
 
 
@@ -47,13 +51,21 @@ void main(){
 
     //foreach sphere ...
     vec3 pt, norm;
-    float t = raySphere(cam_pos, main_dir, vec3(0), 0.1, pt, norm);
+    float t = raySphere(cam_pos, main_dir, vec3(0), 1.0, pt, norm);
     
     if(t>0){
+        if(shadingMode ==0 ){ //normal
+            fColor = vec4(norm,1.0);
+        } else if(shadingMode == 1){ //position
+            fColor = vec4(pt,1.0);
+        } else if(shadingMode == 2){//distance to cam
+            float dist =  distance(cam_pos, pt);
+            float v = (dist - dtoCam_min)/(dtoCam_max-dtoCam_min);
+            fColor = vec4(vec3(v),1.0);
+        }
         //fColor = vec4(norm.xyz,1.0);
-        fColor = vec4(0.8,0.2,0.2,1.0);
     } else{
-        fColor = vec4(0.2,0.8,0.2,1.0);
+        fColor = vec4(0.15,0.15,0.15,1.0);
     }
 
 }
