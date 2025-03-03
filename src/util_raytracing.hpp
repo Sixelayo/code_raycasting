@@ -34,10 +34,10 @@ namespace prog{
 
 #define NB_SPHERE 8
 namespace geo{
-    float xRange[2] = {-10.0f, 10.0f};
-    float yRange[2] = {-10.0f, 10.0f};
-    float zRange[2] = {-10.0f, 10.0f};
-    float rRange[2] = {1.0f, 5.0f};
+    float xRange[2] = {-5.0f, 5.0f};
+    float yRange[2] = {-5.0f, 5.0f};
+    float zRange[2] = {-5.0f, 5.0f};
+    float rRange[2] = {1.0f, 2.0f};
 
     glm::vec4 spheres[NB_SPHERE]; //a sphere is a vec4 => the first 3 are coordinate and last one is raidus
 
@@ -111,16 +111,17 @@ public:
     void updtRUF(){
         forward = glm::normalize(from - to);
         right = glm::normalize(glm::cross(glm::vec3(0,1,0),forward));
-        up = glm::cross(forward, right);
+        //up = glm::cross(forward, right);
+        up = glm::cross(glm::normalize(glm::vec3(forward.x, 0.0f, forward.z)), right);
         distance = sy / tan(glm::radians(fovy/2));
     }
     void updtSy(int width, int height){
-        sy = 2.0f / (width < height ? (float)width/(float)height : 1.0f);
+        sy = 1.0f / (width < height ? (float)width/(float)height : 1.0f);
     }
     void init(float fov, int width, int height){
         fovy = fov;
         updtSy(width, height);
-        from = glm::vec3(1.0f);
+        from = glm::vec3(-10.0f);
         to = glm::vec3(0.0f);
     }
 };

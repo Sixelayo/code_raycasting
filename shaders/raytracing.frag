@@ -17,9 +17,6 @@ uniform float dtoCam_max;
 #define NB_SPHERE 8 //must be size/4
 uniform vec4 spheres[32]; // v[].xyz coordinate and v[].w radius
 
-
-
-
 out vec4 fColor; // final color
 
 
@@ -41,7 +38,7 @@ float raySphere(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, ou
 
     float d = b*b-4*a*c;
     if(d>0){ //solution exist
-        float t = (-b+sqrt(d))/(2*a);
+        float t = (-b-sqrt(d))/(2*a);
         if(t>0){//solution are in front and not behind
             intersecPt = rayPos + t * rayDir;
             normal = normalize(intersecPt - spherePos);
