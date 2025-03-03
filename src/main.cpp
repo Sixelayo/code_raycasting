@@ -22,19 +22,6 @@
 
 
 
-namespace gbl{
-    GLuint vaoquad, vboquad;
-}
-namespace shaders{
-    GLuint vert_passthrouhg;
-    GLuint frag_first_raytracing;
-}
-namespace prog{
-    GLuint prog1;
-}
-
-
-
 int main(int argc, char* argv[]) {
     //save seed so if we ever see smth rly cool we can reset it
     unsigned int seed = static_cast<unsigned int>(std::time(nullptr));
@@ -95,6 +82,9 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(prog::prog1);
+        {//update uniform values
+            glUniform2f(glGetUniformLocation(prog::prog1, "screen"), gbl::SCREEN_X, gbl::SCREEN_Y);
+        }
         util::drawQuad(gbl::vaoquad);
 
 

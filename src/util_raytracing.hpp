@@ -7,6 +7,17 @@
 #include <glad/gl.h>
 #include "opengl_util.h"
 
+namespace gbl{
+    GLuint vaoquad, vboquad;
+    int SCREEN_X, SCREEN_Y;
+}
+namespace shaders{
+    GLuint vert_passthrouhg;
+    GLuint frag_first_raytracing;
+}
+namespace prog{
+    GLuint prog1;
+}
 
 namespace util{
     void loadQuad(GLuint& vao, GLuint& vbo){
@@ -31,9 +42,14 @@ namespace util{
 namespace cbk{
     void onResize(GLFWwindow* window, int width, int height) {
         glViewport(0, 0, width, height);  // Adjust OpenGL viewport
+        gbl::SCREEN_X = width;
+        gbl::SCREEN_Y = height;
     }
 
     void initCallback(GLFWwindow* window){
         glfwSetFramebufferSizeCallback(window, onResize);
+
+        //first init window size
+        glfwGetWindowSize(window, &gbl::SCREEN_X, &gbl::SCREEN_Y);
     }
 }
