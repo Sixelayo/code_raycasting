@@ -18,6 +18,7 @@
 #include <iostream>
 
 #define GLAD_GL_IMPLEMENTATION // Necessary for headeronly version.
+
 #define DEBUG(x) std::cout << x << "\n"
 
 
@@ -69,6 +70,7 @@ int main(int argc, char* argv[]) {
     //init a bunch of things
     glClearColor( 0.8f, 0.3f, 0.4f, 0.0f );
     cbk::initCallback(window);
+    camera.init(45,gbl::SCREEN_X, gbl::SCREEN_Y);
     util::loadQuad(gbl::vaoquad, gbl::vboquad);
     {//shaders initialisation
         shaders::vert_passthrouhg = loadshader("shaders/passthrough.vert", GL_VERTEX_SHADER);
@@ -83,14 +85,21 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
         newframeIMGUI();
 
+        camera.updtRUF();
+
         glUseProgram(prog::prog1);
         {//update uniform values
             glUniform2f(glGetUniformLocation(prog::prog1, "screen"), gbl::SCREEN_X, gbl::SCREEN_Y);
+            glUniform3fv(glGetUniformLocation(prog::prog1, "cam_pos"), 1, glm::value_ptr(camera.from));
+            glUniform3fv(glGetUniformLocation(prog::prog1, "cam_right"), 1, glm::value_ptr(camera.right));
+            glUniform3fv(glGetUniformLocation(prog::prog1, "cam_up"), 1, glm::value_ptr(camera.up));
+            glUniform3fv(glGetUniformLocation(prog::prog1, "cam_forward"), 1, glm::value_ptr(camera.forward));
+            glUniform1f(glGetUniformLocation(prog::prog1, "cam_distance"), camera.distance);
         }
         util::drawQuad(gbl::vaoquad);
         
         //ui
-        ui::hw();
+        ui::hw(camera);
 
 
         endframeIMGUI();
