@@ -1,0 +1,239 @@
+#version 460 core
+
+// Defines the size of a thread group for efficient execution on the GPU
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+// Uniforms for accessing data from the main shader
+layout(rgba32f, binding = 0) uniform image2D target; // Output image to write results
+uniform mat4 inv_proj;                                  // Inverted projection matrix
+uniform mat4 inv_view;                                  // Inverted view matrix
+uniform uvec2 screen_size;                              // Screen size (width and height)
+uniform vec3 light_pos;                                 // Light position
+uniform vec3 offset;                                    // Additional parameter for some fractals (e.g., shift)
+uniform vec3 rotation;
+uniform float min_light;
+uniform float k_d;
+uniform float k_s;
+uniform float alpha;
+uniform vec3 specular;
+uniform float occlusion;
+uniform float time;                                     // Time variable (unused in this shader)
+
+	
+float sdBox( vec3 p, vec3 b )
+{
+  vec3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
+#define fold45(p)(p.y>p.x)?p.yx:p
+
+float de5(vec3 p){
+    float scale = 2.1, off0 = .8, off1 = .3, off2 = .83;
+    vec3 off =vec3(2., .2, .1); // Offset vector
+    float s=1.0;
+    for (int i = 0;++i<20;) {
+        // Perform a series of folding and scaling operations on the x, y, and z components
+        p.xy = abs(p.xy);
+        p.xy = fold45(p.xy);
+        p.y -= off0;
+        p.y = -abs(p.y);
+        p.y += off0;
+        p.x += off1;
+        p.xz = fold45(p.xz);
+        p.x -= off2;
+        p.xz = fold45(p.xz);
+        p.x += off1;
+        p -= off;
+        p *= scale;
+        p += off;
+        s *= scale;
+    }
+    return length(p)/s-0.0001;  // Return the normalized distance estimate
+}
+
+const uint max_iter = 128;          // Maximum number of iterations for ray casting
+const float EPSILON = 1e-3;         // Epsilon value for early termination
+const float PI = 3.14159265358979;  // Pi constant
+
+vec3 rainbow(float i){
+    return min(vec3(1),max(vec3(0),sin((vec3(0,2.0/3,4.0/3)+i)*PI)+.5));
+}
+
+
+
+#define CSize vec3(1., 1.7, 1.)
+
+float de4(vec3 p)
+{
+    p = p.xzy; // Swizzle the x, y, and z components
+    float scale = 1.1;
+    for (int i=0; i < 8;i++)
+    {
+        // Perform operations on the x, y, and z components to achieve the fractal pattern
+        p = 2.0*clamp(p, -CSize, CSize) - p;
+        // Alternate calculation using sine for variation
+        //float r2 = dot(p,p);
+        float r2 = dot(p, p+sin(p.z*.3));
+        float k = max((2.)/(r2), .5);
+        p     *= k;
+        scale *= k;
+    }
+    float l = length(p.xy);     // Calculate the length in the xy plane
+    float rxy = l - 1.0;        // Distance from (1, 1, 1) in the xy plane
+    float n = l * p.z;          // Dot product of p.xy and z
+    rxy = max(rxy, (n) / 8.);   // Adjust distance based on z component
+    return (rxy) / abs(scale);  // Return the normalized distance estimate
+}
+
+float de3( vec3 p ) {
+  float scale = 1.88f;
+  float angle1 = 1.52f;
+  float angle2 = 4.91f;
+  vec3 shift = offset;
+  vec2 a1 = vec2(sin(angle1), cos(angle1));
+  vec2 a2 = vec2(sin(angle2), cos(angle2));
+  mat2 rmZ = mat2(a1.y, a1.x, -a1.x, a1.y);
+  mat2 rmX = mat2(a2.y, a2.x, -a2.x, a2.y);
+  float s = 1.0;
+  for (int i = 0; i <12; ++i) {
+    p.xyz = abs(p.xyz);
+    p.xy *= rmZ;
+    p.xy += min( p.x - p.y, 0.0 ) * vec2( -1., 1. );
+    p.xz += min( p.x - p.z, 0.0 ) * vec2( -1., 1. );
+    p.yz += min( p.y - p.z, 0.0 ) * vec2( -1., 1. );
+    p.yz *= rmX;
+    p *= scale;
+    s *= scale;
+    p.xyz += shift;
+  }
+  vec3 d = abs( p ) - vec3( 6.0f );
+  return ( min( max( d.x, max( d.y, d.z ) ), 0.0 ) + length( max( d, 0.0 ) ) ) / s;
+}
+
+float de(vec3 position) {  
+  vec3 transformedPos = position;
+  float scaleFactor = 2.0;
+  float fractalIterations = 16.0;
+  vec3 angles = offset;
+  for (float i = 0.0; i < fractalIterations; i++) {
+     transformedPos *= scaleFactor;
+     transformedPos = abs(transformedPos) - rotation;
+     transformedPos.xy *= mat2(
+        cos(angles.x), -sin(angles.x), sin(angles.x), cos(angles.x)
+     );
+     transformedPos.yz *= mat2(
+        cos(angles.y), -sin(angles.y), sin(angles.y), cos(angles.y)
+     );
+     transformedPos.xz *= mat2(
+        cos(angles.z), -sin(angles.z), sin(angles.z), cos(angles.z)
+     );
+  }
+  float combinedScaleFactor = pow(scaleFactor, -round(fractalIterations));
+  transformedPos *= combinedScaleFactor;
+  float minDist = sdBox(transformedPos,vec3(combinedScaleFactor*8))-combinedScaleFactor;
+  return minDist;
+}
+vec3 estimateNormal(vec3 p,float e) {
+    return normalize(vec3(
+    de(vec3(p.x + e, p.y, p.z)) - de(vec3(p.x - e, p.y, p.z)),
+    de(vec3(p.x, p.y + e, p.z)) - de(vec3(p.x, p.y - e, p.z)),
+    de(vec3(p.x, p.y, p.z  + e)) - de(vec3(p.x, p.y, p.z - e))
+    ));
+}
+
+vec3 fract_color(vec3 position) {
+  vec3 transformedPos = position;
+  float scaleFactor = 2.0;
+  float fractalIterations = 16.0;
+  vec3 angles = offset;
+  float color = 0.0;
+  for (float i = 0.0; i < 5; i++) {
+     transformedPos *= scaleFactor;
+     transformedPos = abs(transformedPos) - rotation;
+     color += length(transformedPos)/10;
+     transformedPos.xy *= mat2(
+        cos(angles.x), -sin(angles.x), sin(angles.x), cos(angles.x)
+     );
+     transformedPos.yz *= mat2(
+        cos(angles.y), -sin(angles.y), sin(angles.y), cos(angles.y)
+     );
+     transformedPos.xz *= mat2(
+        cos(angles.z), -sin(angles.z), sin(angles.z), cos(angles.z)
+     );
+  }
+  return rainbow(color);
+}
+// Phong lighting model for calculating color
+vec3 phong(vec3 pos,vec3 camera,vec3 color, float min_light,float shadow,float ao, float e) {
+    
+    vec3 normal = estimateNormal(pos, e*2);           // Estimate the normal vector at the point
+    if (dot(normal, pos - camera) > 0.0) {
+        normal = -normal; // Flip the normal if it faces away from the camera
+    }
+    
+    vec3 light_dir = normalize(light_pos - pos);      // Calculate the direction to the light source
+    vec3 reflect_dir = reflect(-light_dir, normal); // Calculate the reflection direction
+    vec3 pos_dir = normalize(camera - pos);         // Calculate the direction to the camera
+    // Calculate diffuse and specular components
+    float coeff_diffuse = dot(normal, light_dir);
+    float coeff_specular = pow(max(dot(pos_dir, reflect_dir), 0.0), exp(alpha)) * k_s;
+    // Combine ambient, diffuse, and specular components to get the final color
+    return vec3(color *(max(coeff_diffuse *k_d * shadow,min_light) * ao) +
+                 specular * coeff_specular * k_s * shadow);
+}
+
+
+void main() {
+    // Check if the current thread is within the bounds of the screen
+    if (gl_GlobalInvocationID.x>=screen_size.x || gl_GlobalInvocationID.y>=screen_size.y)
+        return;
+    
+    // Calculate the ray direction in world space
+    uvec3 grid_size = gl_WorkGroupSize * gl_NumWorkGroups;
+    vec3 dir = normalize(mat3(inv_view) * vec3(inv_proj * vec4(float(gl_GlobalInvocationID.x)/grid_size.x*2.0-1.0, float(gl_GlobalInvocationID.y)/grid_size.y*2.0-1.0, 1.0, 1.0)));
+
+    // Initialize ray marching variables
+    vec3 camera  = inv_view[3].xyz;
+    vec3 pos = camera;  // Starting position of the ray
+    uint steps = 0;
+    float dist = 0;
+    
+    // Ray marching loop
+    for (; steps<max_iter; steps++)
+    {
+        float d = de(pos);  // Calculate the distance to the surface
+        
+        pos += dir*d;       // Step along the ray
+        dist += d;
+        if (d<dist*EPSILON || d>1e10){ // Early termination condition
+            break;
+        }
+    }
+
+    //light loop
+    vec3 light_dir = normalize(light_pos - pos);
+    float light_size = 0.1;
+    float light_dist = distance(pos,light_pos);
+    float max_aperture = 999999;
+    float dist2 = 0.01;
+    vec3 pos2 = pos+light_dir*dist2;
+    for (int i=0; i<max_iter; i++)
+    {
+        float d = de(pos2);  // Calculate the distance to the surface
+        max_aperture = min(max_aperture,d/dist2);
+        pos2 += light_dir*d;       // Step along the ray
+        dist2 += d;
+        if (d<dist2*EPSILON || d>light_dist-light_size){ // Early termination condition
+            if(d<light_dist-light_size){
+                max_aperture=0;
+            }
+            break;
+        }
+    }
+    vec3 color =  phong(pos,camera,fract_color(pos),min_light,min(max_aperture*light_dist/light_size,1.0),exp(-float(steps)*exp(-occlusion)), dist*EPSILON);
+    if(de(pos)>1e5){
+        color = vec3(1.0);
+    }
+    imageStore(target, ivec2(gl_GlobalInvocationID.xy), vec4(color,1));
+}

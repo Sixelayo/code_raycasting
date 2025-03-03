@@ -1,0 +1,274 @@
+#version 460 core
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+layout(rgba32f, binding = 0) uniform image2D target;
+layout(r32i, binding = 1) uniform iimage2D depth;
+layout(r32i, binding = 4) uniform iimage2D jumpdist; //texture that store jump distances
+layout(std140, binding = 5) uniform Ubo_samples {
+    vec4 samples[64]; //MUST MATCH define HALFSPHERE_SAMPLES in attractor.h
+};
+
+uniform mat4 inv_view;
+uniform mat4 inv_proj;
+uniform uvec2 screen_size;
+
+#define PI 3.14159265358
+#define BGCOLOR vec4(0,0,0,1)
+
+uniform vec3 col_jd_low;
+uniform vec3 col_jd_high;
+
+uniform float JD_FR_MIN;
+uniform float JD_FR_MAX;
+
+vec3 normal; //normal in world space
+vec3 ssnormal; //normal in screen space
+mat2 inv_proj_small;
+vec3 wco;
+
+uniform vec3 camera;
+uniform vec3 light_pos;
+uniform float k_a;          //used as min_light in phong
+//uniform vec3 col_ambient; //not used anymore
+uniform float k_d;
+//uniform vec3 col_diffuse; //not used anymore
+uniform float k_s;
+uniform float alpha;
+uniform vec3 col_specular; //still used (why ?)
+
+
+uniform int ssao_version;
+uniform float ao_fac;
+uniform float ao_size;
+uniform vec3 col_ao;
+
+vec3 rainbow(float i){
+    return min(vec3(1),max(vec3(0),sin((vec3(0,2.0/3,4.0/3)+i)*PI)+.5));
+}
+
+float sampleDepth(ivec2 pos){
+    vec2 prod  = inv_proj_small * vec2(float(imageLoad(depth,pos).r)/(1<<31),1);
+    return prod.x / prod.y;
+}
+
+float sampleJumpDist(ivec2 pos){
+    float jd = float(imageLoad(jumpdist, pos).r)/(1<<31);
+    return (jd-JD_FR_MIN)/(JD_FR_MAX-JD_FR_MIN);
+}
+
+vec3 getWorldPosition(ivec2 pos) {
+    float z = float(imageLoad(depth, pos).r) / (1 << 31);
+
+    // Convert from screen space to normalized device coordinates (NDC)
+    vec2 ndc = vec2(pos) / screen_size * 2.0 - 1.0;
+
+    // Form the clip space position
+    vec4 clipSpacePos = vec4(ndc, z, 1.0);
+
+    // Unproject to world space
+    vec4 worldSpacePos = inv_view*inv_proj * clipSpacePos;
+
+    //perspective divide
+    worldSpacePos /= worldSpacePos.w;
+
+    return worldSpacePos.xyz; // Return the 3D world position
+}
+
+void computeNormals2(){
+    float d = sampleDepth(ivec2(gl_GlobalInvocationID.xy))/screen_size.x*inv_proj[0].x*4;
+    float nx = sampleDepth(ivec2(gl_GlobalInvocationID.xy)-ivec2(1,0));
+    float px = sampleDepth(ivec2(gl_GlobalInvocationID.xy)+ivec2(1,0));
+    float ny = sampleDepth(ivec2(gl_GlobalInvocationID.xy)-ivec2(0,1));
+    float py = sampleDepth(ivec2(gl_GlobalInvocationID.xy)+ivec2(0,1));
+    ssnormal = normalize(cross(vec3(-d,0,px-nx),vec3(0,-d,py-ny)));
+    normal = mat3(inv_view)*ssnormal;
+}
+void computeNormals(){
+    wco = getWorldPosition(ivec2(gl_GlobalInvocationID.xy));
+    vec3 wconx = getWorldPosition(ivec2(gl_GlobalInvocationID.xy)-ivec2(1,0));
+    vec3 wcopx = getWorldPosition(ivec2(gl_GlobalInvocationID.xy)+ivec2(1,0));
+    vec3 wcony = getWorldPosition(ivec2(gl_GlobalInvocationID.xy)-ivec2(0,1));
+    vec3 wcopy = getWorldPosition(ivec2(gl_GlobalInvocationID.xy)+ivec2(0,1));
+    vec3 up = normalize(wcopy-wco);
+    vec3 down = normalize(wcony-wco);
+    vec3 right = normalize(wcopx-wco);
+    vec3 left = normalize(wconx-wco);
+
+    normal = -normalize(cross(up,right) + cross(right, down) + cross(down, left) + cross(left, up));
+    ssnormal = transpose(mat3(inv_view))*normal;
+}
+#define SSAOSAMPLES 4
+//Most parameter here are highly interdependent. heavy fine tuning requiered if changer a single thing.
+// #define SSAORANGE 4
+// #define SSAOSTEP 1
+// #define SSAOSKIP 5 //magic value found by experimentation. Tied to the widht of "edges"
+float dubious_ssao_v1(){
+    float cd = sampleDepth(ivec2(gl_GlobalInvocationID.xy));
+    float acc = 0.1;
+    float range = ao_size*float(screen_size.x)/(inv_proj[0].x*-cd);
+    float s = max(1,range/SSAOSAMPLES);
+    int n=1;
+    for(float dx = -range; dx < range; dx+=s){
+        for(float dy = -range; dy < range; dy+=s){
+            float trueDepth = sampleDepth(ivec2(gl_GlobalInvocationID.xy)+ivec2(dx,dy));
+            vec2 wd = vec2(dx,dy)/range;
+            float dif = trueDepth-cd;//(cd-dot(wd,ssnormal.xy)/ssnormal.z);
+            if(dif > ao_size) continue;
+            float de2 = dot(wd,wd);
+            acc+= max(dif/de2,0);
+            n++;
+        }
+    }
+    return acc/n*ao_fac*100; //times 100 to keep somewhat coehrent between different versions
+}
+//Magic values. Most parameter here are highly interdependent. heavy fine tuning requiered if changer a single thing.
+#define SSAORANGEBASE 20 //square of size 9x9
+#define SSAOSTEP 1  //evaluate every pixel on the square
+#define SSAOSKIP 5  //distance requiered to considere it's too far
+float dubious_ssao_v2(){
+    float d = sampleDepth(ivec2(gl_GlobalInvocationID.xy));// * inv_proj[0].x * screen_size.x/2;
+    int SSAORANGE = int(round(SSAORANGEBASE * ao_size * 0.75));
+    float acc = 0;
+    for(int dx = -SSAORANGE; dx <= SSAORANGE; dx+=SSAOSTEP){
+        for(int dy = -SSAORANGE; dy <= SSAORANGE; dy+=SSAOSTEP){
+            float trueDepth = sampleDepth(ivec2(gl_GlobalInvocationID.xy)-ivec2(dx,dy));
+            float dif = trueDepth-d;
+            if(dif > SSAOSKIP)continue;
+            acc+= max(dif,0);
+        }
+    }
+    return acc*50*ao_fac;
+}
+float dubious_ssao_v3(){
+    float acc = 0;
+    int SSAORANGE = int(round(SSAORANGEBASE * ao_size * 1.5));
+    for(int dx = -SSAORANGE; dx <= SSAORANGE; dx+=SSAOSTEP){
+        for(int dy = -SSAORANGE; dy <= SSAORANGE; dy+=SSAOSTEP){
+            vec3 o_wco = getWorldPosition(ivec2(gl_GlobalInvocationID.xy)-ivec2(dx,dy));
+            float val =  dot(ssnormal, normalize(o_wco-wco));
+            acc+= max(val,0);
+        }
+    }
+    return acc*ao_fac*2/5;
+}
+//actually somewhat trueish ssao but looks bad)
+#define HALFSPHERE_SAMPLES 64
+#define RADIUSRESIZE 0.5
+float dubious_ssao_v4(){
+    mat4 proj = inverse(inv_proj);
+
+    float acc = 0;
+    
+    float distcam = distance(camera, wco);
+
+    vec3 randomVec = normalize(vec3(0,1,0)); //todo use hash or small texture
+    vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
+    vec3 bitangent = cross(normal, tangent);
+
+    mat3 TBN =  mat3(tangent, bitangent, normal);
+    for(int i=0; i < HALFSPHERE_SAMPLES; i++){
+        //sample pos in world space
+        vec3 sample_pos = wco + ao_size * RADIUSRESIZE * TBN * samples[i].xyz;
+        if(distance(camera, sample_pos) > distcam) acc+=1.0;
+    }
+
+    return acc / HALFSPHERE_SAMPLES * ao_fac*50;
+}
+
+float dubious_ssao_v5(){
+    mat4 proj = inverse(inv_proj);
+
+    float acc = 0;
+    
+    float distcam = distance(camera, wco);
+
+    vec3 randomVec = normalize(vec3(0,1,0)); //todo use hash or small texture
+    vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
+    vec3 bitangent = cross(normal, tangent);
+
+    mat3 TBN =  mat3(tangent, bitangent, normal);
+    for(int i=0; i < HALFSPHERE_SAMPLES; i++){
+        //sample pos in world space
+        vec3 sample_pos = wco + ao_size * RADIUSRESIZE * TBN * samples[i].xyz;
+
+        //get screen space position
+        vec4 sspos = proj * vec4(sample_pos, 1.0);
+        sspos.xyz /= sspos.w;
+        //sspos.xyz =  sspos.xyz * 0.5 + 0.5; //warning ! z is not spaced to 0-1 when we store it to depht texture
+        
+        //this is just a comparison so no need to convert back to float
+        float depth_of_sample = sspos.z;
+        float depth_true =  float((imageLoad(depth,ivec2(round(sspos.xy))).r)/(1<<31));
+        if(depth_true > depth_of_sample) acc+=1.0;
+
+
+    }
+
+    return acc / HALFSPHERE_SAMPLES * ao_fac*50;
+}
+
+float dubious_ssao(){
+    //there's a lot of magic values inside, mostly to keep constant cpu side coherent
+    switch(ssao_version){
+        case 0:
+            return dubious_ssao_v1();
+        case 1:
+            return dubious_ssao_v2();
+        case 2:
+            return dubious_ssao_v3();
+        case 3:
+            return dubious_ssao_v4();
+        case 4:
+            return dubious_ssao_v5();
+    }
+}
+
+
+//ambient and diffuse are pure white.
+vec3 phong(vec3 color, float min_light,float shadow,float ao) {
+
+    vec3 light_dir = normalize(light_pos - wco);
+    vec3 reflect_dir = reflect(-light_dir, normal);
+    vec3 pos_dir = normalize(camera - wco);
+
+    // Calculate diffuse and specular components
+    float coeff_diffuse = dot(normal, light_dir);
+    float coeff_specular = pow(max(dot(pos_dir, reflect_dir), 0.0), exp(alpha)) * k_s;
+
+    // Combine ambient, diffuse, and specular components to get the final color
+    //return vec3(color *(max(coeff_diffuse *k_d * shadow,min_light) * ao) +
+    //            col_specular * coeff_specular * k_s * shadow);
+    return (color *max(coeff_diffuse *k_d * shadow,min_light) +
+                col_specular * coeff_specular * k_s * shadow) +
+                ao * col_ao;
+}
+
+void main() {
+    // Check if the current thread is within the bounds of the screen
+    if (gl_GlobalInvocationID.x>=screen_size.x || gl_GlobalInvocationID.y>=screen_size.y)
+        return;
+
+    inv_proj_small = mat2(inv_proj[2].zw,inv_proj[3].zw);
+    wco = getWorldPosition(ivec2(gl_GlobalInvocationID.xy));
+
+    float d = sampleDepth(ivec2(gl_GlobalInvocationID.xy));
+    if(d<-99){//early break for background
+        imageStore(target, ivec2(gl_GlobalInvocationID.xy), BGCOLOR);
+        return;
+    }
+
+    
+    float dj =  sampleJumpDist(ivec2(gl_GlobalInvocationID.xy));
+    computeNormals();
+
+    vec3 color = phong(
+        col_jd_low*(1-dj)+dj*col_jd_high,    //generate base color gradient from jump distance
+        k_a,                    //min light
+        1.0,                    //shadow
+        dubious_ssao()   //ambient occlusion
+        );
+    imageStore(target, ivec2(gl_GlobalInvocationID.xy), vec4(color,1)); 
+
+
+    //debugging display normals
+    //imageStore(target, ivec2(gl_GlobalInvocationID.xy), vec4(abs(normal.zyx),1)); 
+}
