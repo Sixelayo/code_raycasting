@@ -8,9 +8,17 @@ uniform vec3 cam_up;
 uniform vec3 cam_forward;
 uniform float cam_distance;
 
+//shader info
 uniform int shadingMode;
 uniform float dtoCam_min;
 uniform float dtoCam_max;
+
+//geometry
+#define NB_SPHERE 8 //must be size/4
+uniform vec4 spheres[32]; // v[].xyz coordinate and v[].w radius
+
+
+
 
 out vec4 fColor; // final color
 
@@ -32,12 +40,13 @@ float raySphere(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, ou
     float c = dot(oMc,oMc) - sphereRadius*sphereRadius;
 
     float d = b*b-4*a*c;
-    if(d>0){
-        //TODO optimisation : no need to write if t is negative
+    if(d>0){ //solution exist
         float t = (-b+sqrt(d))/(2*a);
-        intersecPt = rayPos + t * rayDir;
-        normal = normalize(intersecPt - spherePos);
-        return t;
+        if(t>0){//solution are in front and not behind
+            intersecPt = rayPos + t * rayDir;
+            normal = normalize(intersecPt - spherePos);
+            return t;
+        }
     }
     return -1;
 }
@@ -50,8 +59,17 @@ void main(){
     vec3 main_dir = UV.x*cam_right + UV.y*cam_up - cam_distance*cam_forward;
 
     //foreach sphere ...
+    float t = 999999;
     vec3 pt, norm;
-    float t = raySphere(cam_pos, main_dir, vec3(0), 1.0, pt, norm);
+
+    //spheres
+    for(int i = 0; i < NB_SPHERE; i++){
+        vec3 new_pt, new_norm;
+        float new_t = raySphere(cam_pos, main_dir, spheres[i].xyz, spheres[i].w, new_pt, new_norm);
+        if(new_t >0 && new_t < t){
+            t = new_t; pt = new_pt; norm = new_norm;
+        }
+    }
     
     if(t>0){
         if(shadingMode ==0 ){ //normal

@@ -94,6 +94,10 @@ int main(int argc, char* argv[]) {
             glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
             glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_min"), gbl::dtoCam_min);
             glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_max"), gbl::dtoCam_max);
+
+            //todo optim : only when needed !
+            glUniform4fv(glGetUniformLocation(prog::prog1, "spheres"), NB_SPHERE, glm::value_ptr(geo::spheres[0]));
+
             
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_pos"), 1, glm::value_ptr(camera.from));
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_right"), 1, glm::value_ptr(camera.right));

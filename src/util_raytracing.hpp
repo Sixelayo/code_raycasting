@@ -32,6 +32,34 @@ namespace prog{
     GLuint prog1;
 }
 
+#define NB_SPHERE 8
+namespace geo{
+    float xRange[2] = {-10.0f, 10.0f};
+    float yRange[2] = {-10.0f, 10.0f};
+    float zRange[2] = {-10.0f, 10.0f};
+    float rRange[2] = {1.0f, 5.0f};
+
+    glm::vec4 spheres[NB_SPHERE]; //a sphere is a vec4 => the first 3 are coordinate and last one is raidus
+
+
+    float randomInRange(float min, float max) {
+        return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min);
+    }
+
+    void generate_random_spheres(){
+        for (int i = 0; i < NB_SPHERE; ++i) {
+            float x = randomInRange(xRange[0], xRange[1]);
+            float y = randomInRange(yRange[0], yRange[1]);
+            float z = randomInRange(zRange[0], zRange[1]);
+            float radius = randomInRange(rRange[0], rRange[1]);
+
+            spheres[i] = glm::vec4(x, y, z, radius);
+        }
+    }
+
+
+} //end namespace geo
+
 
 namespace util{
     void loadQuad(GLuint& vao, GLuint& vbo){
@@ -119,6 +147,16 @@ namespace ui{
             if(gbl::curr_mode == distance_to_cam){
                 ImGui::SliderFloat("dist_min", &gbl::dtoCam_min, 0.0f, 20.0f);
                 ImGui::SliderFloat("dist_max", &gbl::dtoCam_max, 0.0f, 20.0f);
+            }
+        }
+        if(ImGui::CollapsingHeader("Geometry", ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::TreeNode("spheres")){
+                if(ImGui::Button("gen")) geo::generate_random_spheres();
+                ImGui::DragFloat2("X Range", geo::xRange, 0.1f, -20.0f, 20.0f, "%.1f");
+                ImGui::DragFloat2("Y Range", geo::yRange, 0.1f, -20.0f, 20.0f, "%.1f");
+                ImGui::DragFloat2("Z Range", geo::zRange, 0.1f, -20.0f, 20.0f, "%.1f");
+                ImGui::DragFloat2("Radius Range", geo::rRange, 0.1f, 0.0f, 50.0f, "%.1f");
+                ImGui::TreePop();
             }
         }
 
