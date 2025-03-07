@@ -14,7 +14,7 @@
 #define DEBUG(x) std::cout << x << "\n"
 
 
-enum ShadingMode{Normal, Position, distance_to_cam};
+enum ShadingMode{Normal, Position, distance_to_cam, Materials};
 
 namespace gbl{
     GLuint vaoquad, vboquad;
@@ -33,6 +33,7 @@ namespace prog{
 }
 
 #define NB_SPHERE 8
+#define NB_PLANE 3 
 namespace geo{
     float xRange[2] = {-5.0f, 5.0f};
     float yRange[2] = {-5.0f, 5.0f};
@@ -40,7 +41,7 @@ namespace geo{
     float rRange[2] = {1.0f, 2.0f};
 
     glm::vec4 spheres[NB_SPHERE]; //a sphere is a vec4 => the first 3 are coordinate and last one is raidus
-
+    glm::vec4 planes[NB_PLANE]; //xyz normal, w offset
 
     float randomInRange(float min, float max) {
         return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min);
@@ -56,6 +57,17 @@ namespace geo{
             spheres[i] = glm::vec4(x, y, z, radius);
         }
     }
+    void normalize_plane(int i){
+        planes[i] = glm::vec4(glm::normalize(glm::vec3(planes[i])),planes[i].w);
+    }
+    void init_plane(){
+        planes[0] = glm::vec4(0,1,0,-7);
+        planes[1] = glm::vec4(1,0,0,-7);
+        planes[2] = glm::vec4(0,0,1,-7);
+        for(int i=0; i< NB_PLANE; i++)
+            normalize_plane(i);
+    }
+    
 
 
 } //end namespace geo
@@ -158,7 +170,7 @@ public:
         float yoffset = ypos - lastY;
 
         to += sensitivity * xoffset *right;
-        to -= sensitivity * yoffset * up;
+        to -= sensitivity * yoffset * glm::vec3(0.0f,1.0f,0.0f);
 
 
         lastX = xpos; lastY = ypos;
@@ -218,7 +230,7 @@ namespace ui{
             ImGui::Text("Up: (%.2f, %.2f, %.2f)", cam.up.x, cam.up.y, cam.up.z);
         }
         if(ImGui::CollapsingHeader("Shading mode", ImGuiTreeNodeFlags_DefaultOpen)){
-            const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam"};
+            const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam", "Materials"};
             if(ImGui::Combo("Shading : ", (int*)&gbl::curr_mode, item_cmb1, IM_ARRAYSIZE(item_cmb1))){
             }
             if(gbl::curr_mode == distance_to_cam){
@@ -228,11 +240,20 @@ namespace ui{
         }
         if(ImGui::CollapsingHeader("Geometry", ImGuiTreeNodeFlags_DefaultOpen)){
             if(ImGui::TreeNode("spheres")){
-                if(ImGui::Button("gen")) geo::generate_random_spheres();
+                if(ImGui::Button("gen##spheres")) geo::generate_random_spheres();
                 ImGui::DragFloat2("X Range", geo::xRange, 0.1f, -20.0f, 20.0f, "%.1f");
                 ImGui::DragFloat2("Y Range", geo::yRange, 0.1f, -20.0f, 20.0f, "%.1f");
                 ImGui::DragFloat2("Z Range", geo::zRange, 0.1f, -20.0f, 20.0f, "%.1f");
                 ImGui::DragFloat2("Radius Range", geo::rRange, 0.1f, 0.0f, 50.0f, "%.1f");
+                ImGui::TreePop();
+            }
+            if(ImGui::TreeNode("planes")){
+                if(ImGui::Button("gen##planes")) geo::init_plane();
+                for(int i =0; i< NB_PLANE; i++){
+                    ImGui::DragFloat4(("##planeinfo"+std::to_string(i)).c_str(), &geo::planes[i][0]);
+                    ImGui::SameLine(); if(ImGui::Button(("normalize##foo"+std::to_string(i)).c_str())) geo::normalize_plane(i);
+                }
+
                 ImGui::TreePop();
             }
         }

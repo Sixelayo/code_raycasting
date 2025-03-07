@@ -15,7 +15,9 @@ uniform float dtoCam_max;
 
 //geometry
 #define NB_SPHERE 8 //must be size/4
-uniform vec4 spheres[32]; // v[].xyz coordinate and v[].w radius
+uniform vec4 spheres[NB_SPHERE]; // v[].xyz coordinate and v[].w radius
+#define NB_PLANE 3
+uniform vec4 planes[NB_PLANE];
 
 out vec4 fColor; // final color
 
@@ -47,6 +49,28 @@ float raySphere(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, ou
     }
     return -1;
 }
+float rayPlane(vec3 rayPos, vec3 rayDir, float planeOffset, vec3 planeNormal, out vec3 intersecPt, out vec3 normal){    
+    normal = planeNormal;
+    
+    // Calculate denominator (dot product of ray direction and plane normal)
+    float denom = dot(planeNormal, rayDir);
+    
+    // parallel ray
+    if (abs(denom) < 0.0001) {
+        return -1.0;
+    }
+    
+    float t = (planeOffset - dot(planeNormal, rayPos)) / denom;
+    
+    if (t < 0.0) {
+        return -1.0; // No intersection
+    }
+    
+    intersecPt = rayPos + t * rayDir;
+    return t;
+    
+    
+}
 
 
 void main(){
@@ -63,6 +87,13 @@ void main(){
     for(int i = 0; i < NB_SPHERE; i++){
         vec3 new_pt, new_norm;
         float new_t = raySphere(cam_pos, main_dir, spheres[i].xyz, spheres[i].w, new_pt, new_norm);
+        if(new_t >0 && new_t < t){
+            t = new_t; pt = new_pt; norm = new_norm;
+        }
+    }
+    for(int i = 0; i < NB_PLANE; i++){
+        vec3 new_pt, new_norm;
+        float new_t = rayPlane(cam_pos, main_dir, planes[i].w, planes[i].xyz, new_pt, new_norm);
         if(new_t >0 && new_t < t){
             t = new_t; pt = new_pt; norm = new_norm;
         }

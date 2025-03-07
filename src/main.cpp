@@ -26,6 +26,7 @@
  * n lookat 0
  * 
  * warning : camera control are kinda sus (may depends on distance, and moving doesn't change to)
+ * to change that add some normalization (either move "to" to distance 1 of "from" or move scale translate applied to "to" in camera.rotateLook)
  */
 
 
@@ -105,6 +106,7 @@ int main(int argc, char* argv[]) {
 
             //todo optim : only when needed !
             glUniform4fv(glGetUniformLocation(prog::prog1, "spheres"), NB_SPHERE, glm::value_ptr(geo::spheres[0]));
+            glUniform4fv(glGetUniformLocation(prog::prog1, "planes"), NB_PLANE, glm::value_ptr(geo::planes[0]));
 
             
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_pos"), 1, glm::value_ptr(camera.from));
