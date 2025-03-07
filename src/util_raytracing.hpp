@@ -255,7 +255,7 @@ namespace ui{
             if(ImGui::TreeNode("spheres")){
                 static int focus_i=0;
                 ImGui::SliderInt("focus index", &focus_i,0, NB_SPHERE-1); //warning : arbitrary memory access lol
-                    ImGui::SameLine(); if(ImGui::Button("focus##sphere")) gbl::controlled = glm::value_ptr(geo::spheres[focus_i]);
+                if(ImGui::Button("focus##sphere")) gbl::controlled = glm::value_ptr(geo::spheres[focus_i]);
                 if(ImGui::Button("gen##spheres")) geo::generate_random_spheres();
                 ImGui::DragFloat2("X Range", geo::xRange, 0.1f, -20.0f, 20.0f, "%.1f");
                 ImGui::DragFloat2("Y Range", geo::yRange, 0.1f, -20.0f, 20.0f, "%.1f");

@@ -173,9 +173,9 @@ void main(){
     
     if(t>0){
         if(shadingMode ==0 ){ //normal
-            fColor = vec4(norm,1.0);
+            fColor = vec4(abs(norm),1.0);
         } else if(shadingMode == 1){ //position
-            fColor = vec4(pt,1.0);
+            fColor = vec4(abs(pt),1.0);
         } else if(shadingMode == 2){//distance to cam
             float dist =  distance(cam_pos, pt);
             float v = (dist - dtoCam_min)/(dtoCam_max-dtoCam_min);
