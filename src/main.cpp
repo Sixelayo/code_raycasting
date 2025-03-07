@@ -81,12 +81,20 @@ int main(int argc, char* argv[]) {
     camera.init(45,gbl::SCREEN_X, gbl::SCREEN_Y);
     util::loadQuad(gbl::vaoquad, gbl::vboquad);
     gbl::light = glm::vec3(3,10,3);
+    gbl::L_a = glm::vec3(0.2f);
+    gbl::L_d = glm::vec3(1);
+    gbl::L_s = glm::vec3(1);
+
     {//shaders initialisation
         shaders::vert_passthrouhg = loadshader("shaders/passthrough.vert", GL_VERTEX_SHADER);
         shaders::frag_first_raytracing = loadshader("shaders/raytracing.frag", GL_FRAGMENT_SHADER);
         prog::prog1 = createShaderProgram(shaders::vert_passthrouhg, shaders::frag_first_raytracing);
     }
+
     initIMGUI(window);
+
+    mat::randomizes(); //also send to shader prog but doesn't work for some reasons ??
+    geo::initGeo();
 
 
     /* Loop until the user closes the window */
@@ -111,6 +119,10 @@ int main(int argc, char* argv[]) {
             glUniform4fv(glGetUniformLocation(prog::prog1, "planes"), NB_PLANE, glm::value_ptr(geo::planes[0]));
             glUniform3fv(glGetUniformLocation(prog::prog1, "tetra"), 4, glm::value_ptr(geo::tetrahedron[0]));
             glUniform3fv(glGetUniformLocation(prog::prog1, "light_pos"), 1, glm::value_ptr(gbl::light));
+            glUniform3fv(glGetUniformLocation(prog::prog1, "La"), 1, glm::value_ptr(gbl::L_a));
+            glUniform3fv(glGetUniformLocation(prog::prog1, "Ld"), 1, glm::value_ptr(gbl::L_d));
+            glUniform3fv(glGetUniformLocation(prog::prog1, "Ls"), 1, glm::value_ptr(gbl::L_s));
+            mat::loadMat();
 
             
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_pos"), 1, glm::value_ptr(camera.from));

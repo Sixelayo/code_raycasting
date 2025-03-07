@@ -21,6 +21,16 @@ uniform vec4 planes[NB_PLANE];
 uniform vec3 tetra[4];
 uniform vec3 light_pos;
 
+uniform vec3 La;
+uniform vec3 Ld;
+uniform vec3 Ls;
+
+#define NB_MAT 5
+uniform vec3 KAs[NB_MAT];
+uniform vec3 KDs[NB_MAT];
+uniform vec3 KSs[NB_MAT];
+uniform float Hs[NB_MAT];
+
 out vec4 fColor; // final color
 
 
@@ -123,23 +133,27 @@ float rayTriangle(vec3 rayPos, vec3 rayDir, vec3 p0, vec3 p1, vec3 p2, out vec3 
     return t;
 }
 
-float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3 norm){
+float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3 norm, out int matId){
     float t = 999999;
     
     //spheres
+    vec3 new_pt, new_norm;
+    int new_mat; float new_t;
     for(int i = 0; i < NB_SPHERE; i++){
-        vec3 new_pt, new_norm;
-        float new_t = raySphere(rayPos, rayDir, spheres[i].xyz, spheres[i].w, new_pt, new_norm);
+        new_t = raySphere(rayPos, rayDir, spheres[i].xyz, spheres[i].w, new_pt, new_norm);
         if(new_t >0 && new_t < t){
-            t = new_t; pt = new_pt; norm = new_norm;
+            t = new_t; pt = new_pt; 
+            norm = new_norm;
+            matId = i %NB_MAT;
         }
     }
     //planes
     for(int i = 0; i < NB_PLANE; i++){
-        vec3 new_pt, new_norm;
         float new_t = rayPlane(rayPos, rayDir, planes[i].w, planes[i].xyz, new_pt, new_norm);
         if(new_t >0 && new_t < t){
             t = new_t; pt = new_pt; norm = new_norm;
+            matId = new_mat;
+            matId = i %NB_MAT;
         }
     }
     //triangles
@@ -149,16 +163,14 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
         vec3 pc = tetra[2];
         vec3 pd = tetra[3];
 
-        vec3 new_pt, new_norm;
-        float new_t;
         new_t= rayTriangle(rayPos, rayDir, pa, pc, pb, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
         new_t = rayTriangle(rayPos, rayDir, pb, pd, pc, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
         new_t = rayTriangle(rayPos, rayDir, pa, pb, pd, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
         new_t = rayTriangle(rayPos, rayDir, pa, pd, pc, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
     }
     return t;
 } // find nearest intersection in the scene, , if intersect: return distance, point and normal
@@ -171,7 +183,8 @@ void main(){
     vec3 main_dir = UV.x*cam_right + UV.y*cam_up - cam_distance*cam_forward;
     
     vec3 pt, norm;
-    float t = computeNearestIntersection(cam_pos, main_dir , pt, norm);
+    int matId;
+    float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
     
     
     if(t>0){
@@ -183,8 +196,17 @@ void main(){
             float dist =  distance(cam_pos, pt);
             float v = (dist - dtoCam_min)/(dtoCam_max-dtoCam_min);
             fColor = vec4(vec3(v),1.0);
+        } else if(shadingMode == 3){//Phong
+            vec3 L = normalize(light_pos - pt);
+            vec3 V = normalize(cam_pos - pt);
+            vec3 R = reflect(-L, norm);
+            vec3 col = La*KAs[matId]; //ambient
+            col += Ld*KDs[matId]*dot(norm, L); //diffuse
+            col += Ls*KSs[matId]*pow(max(0,dot(V, R)),Hs[matId]); //specular
+            fColor = vec4(col,1);
+        }else if(shadingMode == 4){//bling
+
         }
-        //fColor = vec4(norm.xyz,1.0);
     } else{
         fColor = vec4(0.15,0.15,0.15,1.0);
     }

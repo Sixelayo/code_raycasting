@@ -12,9 +12,15 @@
 
 #define M_PI 3.14159265358979323846
 #define DEBUG(x) std::cout << x << "\n"
+#define NB_MAT 5
 
+#define UIDT(txt, i) (std::string(txt) + std::string("##") + std::to_string(i)).c_str()
 
-enum ShadingMode{Normal, Position, distance_to_cam, Materials};
+float randomInRange(float min, float max) {
+    return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min);
+}
+
+enum ShadingMode{Normal, Position, distance_to_cam, Phong, Bling};
 
 namespace gbl{
     GLuint vaoquad, vboquad;
@@ -25,8 +31,10 @@ namespace gbl{
     float dtoCam_max = 5.0f;
 
     glm::vec3 light;
+    glm::vec3 L_a, L_d, L_s;
     float* controlled; //a pointer to a float 3 that keyboard controls
 }
+
 namespace shaders{
     GLuint vert_passthrouhg;
     GLuint frag_first_raytracing;
@@ -34,6 +42,56 @@ namespace shaders{
 namespace prog{
     GLuint prog1;
 }
+namespace mat{
+    glm::vec3 KAs[NB_MAT];
+    glm::vec3 KDs[NB_MAT];
+    glm::vec3 KSs[NB_MAT];
+    float Hs[NB_MAT]; //shininess
+
+    void loadMat(){
+        glUniform3fv(glGetUniformLocation(prog::prog1, "KAs"), NB_MAT, glm::value_ptr(KAs[0]));
+        glUniform3fv(glGetUniformLocation(prog::prog1, "KDs"), NB_MAT, glm::value_ptr(KDs[0]));
+        glUniform3fv(glGetUniformLocation(prog::prog1, "KSs"), NB_MAT, glm::value_ptr(KSs[0]));
+        glUniform1fv(glGetUniformLocation(prog::prog1, "Hs"), NB_MAT, Hs);
+    }
+    
+    void randomizes(){
+        for(int i=0; i<NB_MAT; i++){
+            KAs[i] = glm::vec3(randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f));
+            KDs[i] = glm::vec3(randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f));
+            KSs[i] = glm::vec3(randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f));
+            Hs[i] = randomInRange(1.0f,256.0f);
+        }
+        //loadMat(); //useless cuz load every frame
+    }
+    void allwhite(){
+        for(int i=0; i<NB_MAT; i++){
+            KAs[i] = glm::vec3(1.0f);
+            KDs[i] = glm::vec3(1.0f);
+            KSs[i] = glm::vec3(1.0f);
+        }
+    }
+    void setAllShine(int v){
+        for(int i=0; i<NB_MAT; i++){
+            Hs[i] = v;
+        }
+    }
+
+    void uiMat(){
+        if(ImGui::Button("LoadMats")) loadMat();
+        if(ImGui::Button("Randomize mat")) randomizes();
+        static int shine = 1;
+        ImGui::SliderInt("shine", &shine,0, 256); 
+        if(ImGui::Button("set all shininess")) setAllShine(shine);
+        for(int i=0; i<NB_MAT; i++){
+            ImGui::Text(UIDT("Material : ", i));
+            ImGui::ColorEdit3(UIDT("Ka", i), (float*)&KAs[i], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayRGB);
+            ImGui::ColorEdit3(UIDT("Kd", i), (float*)&KDs[i], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayRGB);
+            ImGui::ColorEdit3(UIDT("Ks", i), (float*)&KSs[i], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayRGB);
+        }
+    }
+
+};
 
 #define NB_SPHERE 8
 #define NB_PLANE 3 
@@ -46,10 +104,7 @@ namespace geo{
     glm::vec4 spheres[NB_SPHERE]; //a sphere is a vec4 => the first 3 are coordinate and last one is raidus
     glm::vec4 planes[NB_PLANE]; //xyz normal, w offset
     glm::vec3 tetrahedron[4];
-
-    float randomInRange(float min, float max) {
-        return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min);
-    }
+    
 
     void generate_random_spheres(){
         for (int i = 0; i < NB_SPHERE; ++i) {
@@ -78,7 +133,11 @@ namespace geo{
         tetrahedron[3] = glm::vec3(0,1,0);
     }
     
-
+    void initGeo(){
+        generate_random_spheres();
+        init_plane();
+        init_tetra();
+    }
 
 } //end namespace geo
 
@@ -246,16 +305,30 @@ namespace ui{
             ImGui::Text("Up: (%.2f, %.2f, %.2f)", cam.up.x, cam.up.y, cam.up.z);
         }
         if(ImGui::CollapsingHeader("Shading mode", ImGuiTreeNodeFlags_DefaultOpen)){
-            ImGui::InputFloat3("Light pos", &gbl::light[0]);
+// ----------------------------------------------- LIGHTS -----------------------------------------------------------------
 
-            const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam", "Materials"};
+            const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam", "Phong", "Bling"};
             if(ImGui::Combo("Shading : ", (int*)&gbl::curr_mode, item_cmb1, IM_ARRAYSIZE(item_cmb1))){
             }
             if(gbl::curr_mode == distance_to_cam){
                 ImGui::SliderFloat("dist_min", &gbl::dtoCam_min, 0.0f, 20.0f);
                 ImGui::SliderFloat("dist_max", &gbl::dtoCam_max, 0.0f, 20.0f);
             }
+            ImGui::Separator();
+
+            ImGui::InputFloat3("Light pos", &gbl::light[0]);
+            ImGui::ColorEdit3("La", (float*)&gbl::L_a, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayRGB);
+            ImGui::ColorEdit3("Ld", (float*)&gbl::L_d, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayRGB);
+            ImGui::ColorEdit3("Ls", (float*)&gbl::L_s, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayRGB);
+            
+// ----------------------------------------------- MATERIAL -----------------------------------------------------------------
+            if(ImGui::TreeNode("Materials list")){
+                mat::uiMat();
+                HelpMarker("useless as of know, already sent per frame");
+                ImGui::TreePop();
+            }
         }
+// ----------------------------------------------- GEOMETRY -----------------------------------------------------------------
         if(ImGui::CollapsingHeader("Geometry", ImGuiTreeNodeFlags_DefaultOpen)){
             if(ImGui::TreeNode("spheres")){
                 static int focus_i=0;
