@@ -172,8 +172,9 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
         new_t = rayTriangle(rayPos, rayDir, pa, pd, pc, new_pt, new_norm);
         if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
     }
+    if(999999-t<0.1) return -1;
     return t;
-} // find nearest intersection in the scene, , if intersect: return distance, point and normal
+}
 
 
 void main(){
@@ -188,32 +189,40 @@ void main(){
     
     
     if(t>0){
+        vec3 col = vec3(0); //intermediate col before shadow
         if(shadingMode ==0 ){ //normal
-            fColor = vec4(abs(norm),1.0);
+            col = abs(norm);
         } else if(shadingMode == 1){ //position
-            fColor = vec4(abs(pt),1.0);
+            col = abs(pt);
         } else if(shadingMode == 2){//distance to cam
             float dist =  distance(cam_pos, pt);
             float v = (dist - dtoCam_min)/(dtoCam_max-dtoCam_min);
-            fColor = vec4(vec3(v),1.0);
+            col = vec3(v);
         } else if(shadingMode == 3){//Phong
             vec3 L = normalize(light_pos - pt);
             vec3 V = normalize(cam_pos - pt);
             vec3 R = reflect(-L, norm);
-            vec3 col = La*KAs[matId]; //ambient
+            col = La*KAs[matId]; //ambient
             col += Ld*KDs[matId]*dot(norm, L); //diffuse
             col += Ls*KSs[matId]*pow(max(0,dot(V, R)),Hs[matId]); //specular
-            fColor = vec4(col,1);
         }else if(shadingMode == 4){//bling
             vec3 L = normalize(light_pos - pt);
             vec3 V = normalize(cam_pos - pt);
             vec3 H = normalize(L+V);
             vec3 R = reflect(-L, norm);
-            vec3 col = La*KAs[matId]; //ambient
+            col = La*KAs[matId]; //ambient
             col += Ld*KDs[matId]*dot(norm, L); //diffuse
             col += Ls*KSs[matId]*pow(max(0,dot(norm, H)),Hs[matId]); //specular
-            fColor = vec4(col,1);
+        } //todo : lafortune
+        
+        //shadows
+        vec3 pt_foo, norm_foo;
+        int mat_foo;
+        float obstruc = computeNearestIntersection(pt+0.01*norm, normalize(light_pos-pt), pt_foo, norm_foo, mat_foo);
+        if(obstruc>0){
+            col = vec3(0);
         }
+        fColor = vec4(col,1.0);
     } else{
         fColor = vec4(0.15,0.15,0.15,1.0);
     }
