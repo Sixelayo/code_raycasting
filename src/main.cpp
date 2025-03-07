@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
         newframeIMGUI();
         camera.updtRUF();
-        camera.moveFromKeyBoard(window);
+        camera.moveFromKeyBoard(window, gbl::controlled);
         
         glUseProgram(prog::prog1);
         {//update uniform values

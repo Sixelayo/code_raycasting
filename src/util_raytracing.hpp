@@ -23,6 +23,8 @@ namespace gbl{
     ShadingMode curr_mode = Normal;
     float dtoCam_min =1.0f;
     float dtoCam_max = 5.0f;
+
+    float* controlled; //a pointer to a float 3 that keyboard controls
 }
 namespace shaders{
     GLuint vert_passthrouhg;
@@ -145,30 +147,32 @@ public:
         lockdir = false;
         lastX = width/2;
         lastY = height/2;
+
+        gbl::controlled = glm::value_ptr(from);
     }
 
     
-    void moveY(float v){
-        from.y += ms*v;
+    void moveY(float* ptr, float v){
+        ptr[1] += ms*v;
     }
-    void moveFoward(float v){
+    void moveFoward(float* ptr, float v){
         glm::vec3 length = -forward*ms*v;
-        from.x += length.x;
-        from.z += length.z;
+        ptr[0] += length.x;
+        ptr[2] += length.z;
     }
-    void moveSideways(float v){
+    void moveSideways(float* ptr, float v){
         glm::vec3 length = right*ms*v;
-        from.x += length.x;
-        from.z += length.z;
+        ptr[0] += length.x;
+        ptr[2] += length.z;
     }
     //uses this instead of tracking held state (glfm only has pressed / released state)
-    void moveFromKeyBoard(GLFWwindow* window){
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) moveFoward(1.0f);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) moveFoward(-1.0f);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveSideways(-1.0f);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveSideways(1.0f);
-        if (glfwGetKey(window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) moveY(-1.0f);
-        if (glfwGetKey(window,GLFW_KEY_SPACE) == GLFW_PRESS) moveY(1.0f);
+    void moveFromKeyBoard(GLFWwindow* window, float* ptr){
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) moveFoward(ptr, 1.0f);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) moveFoward(ptr, -1.0f);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveSideways(ptr, -1.0f);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveSideways(ptr, 1.0f);
+        if (glfwGetKey(window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) moveY(ptr, -1.0f);
+        if (glfwGetKey(window,GLFW_KEY_SPACE) == GLFW_PRESS) moveY(ptr, 1.0f);
     }
     void rotateLook(double xpos, double ypos){
         if(lockdir) return;
@@ -201,6 +205,8 @@ namespace cbk{
             camera.lockdir = !camera.lockdir;
         if (key == GLFW_KEY_N && action == GLFW_PRESS)
             camera.to = glm::vec3(0.0f);
+        if (key == GLFW_KEY_C && action == GLFW_PRESS)
+            gbl::controlled = glm::value_ptr(camera.from);
 
     }
 
@@ -247,6 +253,9 @@ namespace ui{
         }
         if(ImGui::CollapsingHeader("Geometry", ImGuiTreeNodeFlags_DefaultOpen)){
             if(ImGui::TreeNode("spheres")){
+                static int focus_i=0;
+                ImGui::SliderInt("focus index", &focus_i,0, NB_SPHERE-1); //warning : arbitrary memory access lol
+                    ImGui::SameLine(); if(ImGui::Button("focus##sphere")) gbl::controlled = glm::value_ptr(geo::spheres[focus_i]);
                 if(ImGui::Button("gen##spheres")) geo::generate_random_spheres();
                 ImGui::DragFloat2("X Range", geo::xRange, 0.1f, -20.0f, 20.0f, "%.1f");
                 ImGui::DragFloat2("Y Range", geo::yRange, 0.1f, -20.0f, 20.0f, "%.1f");
@@ -266,9 +275,13 @@ namespace ui{
             if(ImGui::TreeNode("tetra")){
                 if(ImGui::Button("gen##planes")) geo::init_tetra();
                 ImGui::DragFloat3("pA", &geo::tetrahedron[0][0]);
+                    ImGui::SameLine(); if(ImGui::Button("focus##tetra1")) gbl::controlled = glm::value_ptr(geo::tetrahedron[0]);
                 ImGui::DragFloat3("pB", &geo::tetrahedron[1][0]);
+                    ImGui::SameLine(); if(ImGui::Button("focus##tetra2")) gbl::controlled = glm::value_ptr(geo::tetrahedron[1]);
                 ImGui::DragFloat3("pC", &geo::tetrahedron[2][0]);
+                    ImGui::SameLine(); if(ImGui::Button("focus##tetra3")) gbl::controlled = glm::value_ptr(geo::tetrahedron[2]);
                 ImGui::DragFloat3("pD", &geo::tetrahedron[3][0]);
+                    ImGui::SameLine(); if(ImGui::Button("focus##tetra4")) gbl::controlled = glm::value_ptr(geo::tetrahedron[3]);
 
                 ImGui::TreePop();
             }
