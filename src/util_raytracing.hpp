@@ -42,6 +42,7 @@ namespace geo{
 
     glm::vec4 spheres[NB_SPHERE]; //a sphere is a vec4 => the first 3 are coordinate and last one is raidus
     glm::vec4 planes[NB_PLANE]; //xyz normal, w offset
+    glm::vec3 tetrahedron[4];
 
     float randomInRange(float min, float max) {
         return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min);
@@ -66,6 +67,12 @@ namespace geo{
         planes[2] = glm::vec4(0,0,1,-7);
         for(int i=0; i< NB_PLANE; i++)
             normalize_plane(i);
+    }
+    void init_tetra(){
+        tetrahedron[0] = glm::vec3(0);
+        tetrahedron[1] = glm::vec3(1,0,0);
+        tetrahedron[2] = glm::vec3(0,0,1);
+        tetrahedron[3] = glm::vec3(0,1,0);
     }
     
 
@@ -253,6 +260,15 @@ namespace ui{
                     ImGui::DragFloat4(("##planeinfo"+std::to_string(i)).c_str(), &geo::planes[i][0]);
                     ImGui::SameLine(); if(ImGui::Button(("normalize##foo"+std::to_string(i)).c_str())) geo::normalize_plane(i);
                 }
+
+                ImGui::TreePop();
+            }
+            if(ImGui::TreeNode("tetra")){
+                if(ImGui::Button("gen##planes")) geo::init_tetra();
+                ImGui::DragFloat3("pA", &geo::tetrahedron[0][0]);
+                ImGui::DragFloat3("pB", &geo::tetrahedron[1][0]);
+                ImGui::DragFloat3("pC", &geo::tetrahedron[2][0]);
+                ImGui::DragFloat3("pD", &geo::tetrahedron[3][0]);
 
                 ImGui::TreePop();
             }

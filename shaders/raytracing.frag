@@ -19,6 +19,8 @@ uniform vec4 spheres[NB_SPHERE]; // v[].xyz coordinate and v[].w radius
 #define NB_PLANE 3
 uniform vec4 planes[NB_PLANE];
 
+uniform vec3 tetra[4];
+
 out vec4 fColor; // final color
 
 
@@ -68,9 +70,60 @@ float rayPlane(vec3 rayPos, vec3 rayDir, float planeOffset, vec3 planeNormal, ou
     
     intersecPt = rayPos + t * rayDir;
     return t;
-    
-    
 }
+
+float rayTriangle(vec3 rayPos, vec3 rayDir, vec3 p0, vec3 p1, vec3 p2, out vec3 intersecPt, out vec3 normal){
+    const float EPSILON = 0.000001;
+
+    // Calculate edges of the triangle
+    vec3 edge1 = p1 - p0;
+    vec3 edge2 = p2 - p0;
+
+    // Calculate determinant
+    vec3 h = cross(rayDir, edge2);
+    float a = dot(edge1, h);
+
+    // Check if ray is parallel to triangle
+    if (abs(a) < EPSILON) {
+        return -1.0; // Ray is parallel, no intersection
+    }
+
+    float f = 1.0 / a;
+    vec3 s = rayPos - p0;
+    float u = f * dot(s, h);
+
+    // Check if intersection is outside triangle (u coordinate)
+    if (u < 0.0 || u > 1.0) {
+        return -1.0;
+    }
+
+    vec3 q = cross(s, edge1);
+    float v = f * dot(rayDir, q);
+
+    // Check if intersection is outside triangle (v coordinate and u+v)
+    if (v < 0.0 || u + v > 1.0) {
+        return -1.0;
+    }
+
+    // Calculate distance t along the ray
+    float t = f * dot(edge2, q);
+
+    // Check if intersection is behind ray origin
+    if (t < EPSILON) {
+        return -1.0; // Intersection behind ray origin
+    }
+
+    // Calculate intersection point
+    intersecPt = rayPos + rayDir * t;
+
+    // Calculate triangle normal (unnormalized)
+    normal = cross(edge1, edge2);
+    // Normalize the normal (optional, depending on your needs)
+    normal = normalize(normal);
+
+    return t;
+}
+
 
 
 void main(){
@@ -91,12 +144,31 @@ void main(){
             t = new_t; pt = new_pt; norm = new_norm;
         }
     }
+    //planes
     for(int i = 0; i < NB_PLANE; i++){
         vec3 new_pt, new_norm;
         float new_t = rayPlane(cam_pos, main_dir, planes[i].w, planes[i].xyz, new_pt, new_norm);
         if(new_t >0 && new_t < t){
             t = new_t; pt = new_pt; norm = new_norm;
         }
+    }
+    //triangles
+    {//only tetrahedron supports for now
+        vec3 pa = tetra[0];
+        vec3 pb = tetra[1];
+        vec3 pc = tetra[2];
+        vec3 pd = tetra[3];
+
+        vec3 new_pt, new_norm;
+        float new_t;
+        new_t= rayTriangle(cam_pos, main_dir, pa, pc, pb, new_pt, new_norm);
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
+        new_t = rayTriangle(cam_pos, main_dir, pb, pd, pc, new_pt, new_norm);
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
+        new_t = rayTriangle(cam_pos, main_dir, pa, pb, pd, new_pt, new_norm);
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
+        new_t = rayTriangle(cam_pos, main_dir, pa, pd, pc, new_pt, new_norm);
+        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm;}
     }
     
     if(t>0){
