@@ -19,7 +19,14 @@
 
 #define GLAD_GL_IMPLEMENTATION // Necessary for headeronly version.
 
-
+/**
+ * Control (azerty)
+ * zsqd move
+ * , lock rota
+ * n lookat 0
+ * 
+ * warning : camera control are kinda sus (may depends on distance, and moving doesn't change to)
+ */
 
 
 int main(int argc, char* argv[]) {
@@ -85,6 +92,7 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
         newframeIMGUI();
         camera.updtRUF();
+        camera.moveFromKeyBoard(window);
         
         glUseProgram(prog::prog1);
         {//update uniform values

@@ -81,32 +81,30 @@ namespace util{
 
 }
 
-namespace cbk{
-    void onResize(GLFWwindow* window, int width, int height) {
-        glViewport(0, 0, width, height);  // Adjust OpenGL viewport
-        gbl::SCREEN_X = width;
-        gbl::SCREEN_Y = height;
-    }
 
-    void initCallback(GLFWwindow* window){
-        glfwSetFramebufferSizeCallback(window, onResize);
-
-        //first init window size
-        glfwGetWindowSize(window, &gbl::SCREEN_X, &gbl::SCREEN_Y);
-    }
-}
 
 class Camera{
 public:
+    bool lockdir;
+    // Add these for mouse control
+    float lastX = 400.0f;  // Initial mouse X (assuming 800x600 window)
+    float lastY = 300.0f;  // Initial mouse Y
+    float sensitivity = 0.1f;  // Mouse sensitivity
+
     //param
     float fovy;
     float sy;
     glm::vec3 from;
     glm::vec3 to;
+    float ms; //movespeed
+    float sensivity; //rotate sensi
     
     //readonly
     float distance;
     glm::vec3 forward, right, up;
+
+
+    //mouse control 
 
     void updtRUF(){
         forward = glm::normalize(from - to);
@@ -121,11 +119,89 @@ public:
     void init(float fov, int width, int height){
         fovy = fov;
         updtSy(width, height);
-        from = glm::vec3(-10.0f);
+        from = glm::vec3(10.0f);
         to = glm::vec3(0.0f);
+        ms = 0.1;
+        sensitivity = 0.075f;
+        lockdir = false;
+        lastX = width/2;
+        lastY = height/2;
     }
+
+    
+    void moveY(float v){
+        from.y += ms*v;
+    }
+    void moveFoward(float v){
+        glm::vec3 length = -forward*ms*v;
+        from.x += length.x;
+        from.z += length.z;
+    }
+    void moveSideways(float v){
+        glm::vec3 length = right*ms*v;
+        from.x += length.x;
+        from.z += length.z;
+    }
+    //uses this instead of tracking held state (glfm only has pressed / released state)
+    void moveFromKeyBoard(GLFWwindow* window){
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) moveFoward(1.0f);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) moveFoward(-1.0f);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveSideways(-1.0f);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveSideways(1.0f);
+        if (glfwGetKey(window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) moveY(-1.0f);
+        if (glfwGetKey(window,GLFW_KEY_SPACE) == GLFW_PRESS) moveY(1.0f);
+    }
+    void rotateLook(double xpos, double ypos){
+        if(lockdir) return;
+
+        float xoffset = xpos - lastX;
+        float yoffset = ypos - lastY;
+
+        to += sensitivity * xoffset *right;
+        to -= sensitivity * yoffset * up;
+
+
+        lastX = xpos; lastY = ypos;
+    }
+
 };
 Camera camera;
+
+namespace cbk{
+    void onResize(GLFWwindow* window, int width, int height) {
+        glViewport(0, 0, width, height);  // Adjust OpenGL viewport
+        gbl::SCREEN_X = width;
+        gbl::SCREEN_Y = height;
+    }
+
+    void onKey(GLFWwindow* window, int key, int scancode, int action, int mods){
+        //...only presed / released event usualy boolean switch
+
+        //M is comma on azerty
+        if (key == GLFW_KEY_M && action == GLFW_PRESS)
+            camera.lockdir = !camera.lockdir;
+        if (key == GLFW_KEY_N && action == GLFW_PRESS)
+            camera.to = glm::vec3(0.0f);
+
+    }
+
+    void onCursor(GLFWwindow* window, double xpos, double ypos) {
+        // should store camera in glfw user pointer
+        camera.rotateLook(xpos, ypos); 
+   
+    }
+
+
+    void initCallback(GLFWwindow* window){
+        glfwSetFramebufferSizeCallback(window, onResize);
+        glfwSetKeyCallback(window, onKey);
+        glfwSetCursorPosCallback(window, onCursor);
+
+
+        //first init window size
+        glfwGetWindowSize(window, &gbl::SCREEN_X, &gbl::SCREEN_Y);
+    }
+}
 
 
 namespace ui{
