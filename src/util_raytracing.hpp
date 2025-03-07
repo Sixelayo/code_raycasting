@@ -24,6 +24,7 @@ namespace gbl{
     float dtoCam_min =1.0f;
     float dtoCam_max = 5.0f;
 
+    glm::vec3 light;
     float* controlled; //a pointer to a float 3 that keyboard controls
 }
 namespace shaders{
@@ -207,6 +208,8 @@ namespace cbk{
             camera.to = glm::vec3(0.0f);
         if (key == GLFW_KEY_C && action == GLFW_PRESS)
             gbl::controlled = glm::value_ptr(camera.from);
+        if (key == GLFW_KEY_X && action == GLFW_PRESS)
+            gbl::controlled = glm::value_ptr(gbl::light);
 
     }
 
@@ -243,6 +246,8 @@ namespace ui{
             ImGui::Text("Up: (%.2f, %.2f, %.2f)", cam.up.x, cam.up.y, cam.up.z);
         }
         if(ImGui::CollapsingHeader("Shading mode", ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::InputFloat3("Light pos", &gbl::light[0]);
+
             const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam", "Materials"};
             if(ImGui::Combo("Shading : ", (int*)&gbl::curr_mode, item_cmb1, IM_ARRAYSIZE(item_cmb1))){
             }
