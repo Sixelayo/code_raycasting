@@ -26,7 +26,7 @@ namespace gbl{
     GLuint vaoquad, vboquad;
     int SCREEN_X, SCREEN_Y;
 
-    ShadingMode curr_mode = Normal;
+    ShadingMode curr_mode = Phong;
     float dtoCam_min =1.0f;
     float dtoCam_max = 5.0f;
 
@@ -78,7 +78,8 @@ namespace mat{
     }
 
     void uiMat(){
-        if(ImGui::Button("LoadMats")) loadMat();
+        //if(ImGui::Button("LoadMats")) loadMat();
+        if(ImGui::Button("Allwhite mat")) allwhite();
         if(ImGui::Button("Randomize mat")) randomizes();
         static int shine = 1;
         ImGui::SliderInt("shine", &shine,0, 256); 

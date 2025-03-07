@@ -205,7 +205,14 @@ void main(){
             col += Ls*KSs[matId]*pow(max(0,dot(V, R)),Hs[matId]); //specular
             fColor = vec4(col,1);
         }else if(shadingMode == 4){//bling
-
+            vec3 L = normalize(light_pos - pt);
+            vec3 V = normalize(cam_pos - pt);
+            vec3 H = normalize(L+V);
+            vec3 R = reflect(-L, norm);
+            vec3 col = La*KAs[matId]; //ambient
+            col += Ld*KDs[matId]*dot(norm, L); //diffuse
+            col += Ls*KSs[matId]*pow(max(0,dot(norm, H)),Hs[matId]); //specular
+            fColor = vec4(col,1);
         }
     } else{
         fColor = vec4(0.15,0.15,0.15,1.0);
