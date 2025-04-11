@@ -1,4 +1,5 @@
 #version 430
+#define BGCOLOR vec4(1.0,0.15,0.15,1.0)
 
 uniform vec2 screen; // send SCREEN_X and SCREEN_Y
 
@@ -132,7 +133,9 @@ float rayTriangle(vec3 rayPos, vec3 rayDir, vec3 p0, vec3 p1, vec3 p2, out vec3 
 
     return t;
 }
-
+/* returns the distance to the nearest intersection of the ray (rayPos, rayDir)
+if no intersection returns -1
+if relevant : updates pt (intersection point), norm (normal at intersection) and matId (material at of intersected*/
 float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3 norm, out int matId){
     float t = 999999;
     
@@ -185,9 +188,11 @@ void main(){
     
     vec3 pt, norm;
     int matId;
+
+    //compute nearest intersection
     float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
     
-    
+    //compute shadow ray (depending on mode)
     if(t>0){
         vec3 col = vec3(0); //intermediate col before shadow
         if(shadingMode ==0 ){ //normal
@@ -218,13 +223,13 @@ void main(){
         //shadows
         vec3 pt_foo, norm_foo;
         int mat_foo;
-        float obstruc = computeNearestIntersection(pt+0.01*norm, normalize(light_pos-pt), pt_foo, norm_foo, mat_foo);
-        if(obstruc>0){
+        float dist_to_light_obstructer = computeNearestIntersection(pt+0.1*norm, normalize(light_pos-pt), pt_foo, norm_foo, mat_foo);
+        if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, light_pos)){
             col = vec3(0);
         }
         fColor = vec4(col,1.0);
     } else{
-        fColor = vec4(0.15,0.15,0.15,1.0);
+        fColor = BGCOLOR;
     }
 
 }

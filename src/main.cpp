@@ -114,6 +114,7 @@ int main(int argc, char* argv[]) {
             glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_min"), gbl::dtoCam_min);
             glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_max"), gbl::dtoCam_max);
 
+            //send geometry and lights to gpu
             //todo optim : only when needed !
             glUniform4fv(glGetUniformLocation(prog::prog1, "spheres"), NB_SPHERE, glm::value_ptr(geo::spheres[0]));
             glUniform4fv(glGetUniformLocation(prog::prog1, "planes"), NB_PLANE, glm::value_ptr(geo::planes[0]));
@@ -122,9 +123,12 @@ int main(int argc, char* argv[]) {
             glUniform3fv(glGetUniformLocation(prog::prog1, "La"), 1, glm::value_ptr(gbl::L_a));
             glUniform3fv(glGetUniformLocation(prog::prog1, "Ld"), 1, glm::value_ptr(gbl::L_d));
             glUniform3fv(glGetUniformLocation(prog::prog1, "Ls"), 1, glm::value_ptr(gbl::L_s));
+            
+            //send materials data to gpu 
+            //todo optim : only when needed
             mat::loadMat();
 
-            
+            //send camera info to gpu
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_pos"), 1, glm::value_ptr(camera.from));
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_right"), 1, glm::value_ptr(camera.right));
             glUniform3fv(glGetUniformLocation(prog::prog1, "cam_up"), 1, glm::value_ptr(camera.up));
