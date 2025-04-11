@@ -21,12 +21,14 @@ float randomInRange(float min, float max) {
 }
 
 enum ShadingMode{Normal, Position, distance_to_cam, Phong, Bling};
+enum ShadowMode{None_shadow, Hard_shadow, Soft_shadow};
 
 namespace gbl{
     GLuint vaoquad, vboquad;
     int SCREEN_X, SCREEN_Y;
 
     ShadingMode curr_mode = Phong;
+    ShadowMode curr_shadow = None_shadow;
     float dtoCam_min =1.0f;
     float dtoCam_max = 5.0f;
 
@@ -159,6 +161,13 @@ namespace util{
     void drawQuad(GLuint& vao){
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    //some of the GPU memory that is updated only via UI need to be set the first time
+    void sendToGPUOnce(){
+        glUseProgram(prog::prog1);
+        glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
+        glUniform1i(glGetUniformLocation(prog::prog1, "shadowMode"), gbl::curr_shadow);        
     }
 
 }
@@ -310,11 +319,17 @@ namespace ui{
 
             const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam", "Phong", "Bling"};
             if(ImGui::Combo("Shading : ", (int*)&gbl::curr_mode, item_cmb1, IM_ARRAYSIZE(item_cmb1))){
+                glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
             }
             if(gbl::curr_mode == distance_to_cam){
                 ImGui::SliderFloat("dist_min", &gbl::dtoCam_min, 0.0f, 20.0f);
                 ImGui::SliderFloat("dist_max", &gbl::dtoCam_max, 0.0f, 20.0f);
             }
+            const char* item_cmb2[] =  {"None", "Hard", "Soft"};
+            if(ImGui::Combo("Shadow mode : ", (int*)&gbl::curr_shadow, item_cmb2, IM_ARRAYSIZE(item_cmb2))){
+                glUniform1i(glGetUniformLocation(prog::prog1, "shadowMode"), gbl::curr_shadow);
+            }
+
             ImGui::Separator();
 
             ImGui::InputFloat3("Light pos", &gbl::light[0]);

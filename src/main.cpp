@@ -97,6 +97,8 @@ int main(int argc, char* argv[]) {
     geo::initGeo();
 
 
+    util::sendToGPUOnce();    
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
@@ -106,19 +108,22 @@ int main(int argc, char* argv[]) {
         camera.moveFromKeyBoard(window, gbl::controlled);
         
         glUseProgram(prog::prog1);
-        {//update uniform values
+        {//update uniform values - Comented are updated only when requiered in via UI
             glUniform2f(glGetUniformLocation(prog::prog1, "screen"), gbl::SCREEN_X, gbl::SCREEN_Y);
             
             //todo optim : uniform should be updated only when UI call for it !
-            glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
+            //glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
+            //glUniform1i(glGetUniformLocation(prog::prog1, "shadowMode"), gbl::curr_shadow);
             glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_min"), gbl::dtoCam_min);
             glUniform1f(glGetUniformLocation(prog::prog1, "dtoCam_max"), gbl::dtoCam_max);
 
-            //send geometry and lights to gpu
-            //todo optim : only when needed !
+            //send geometry
+            //todo optim : update only when needed ! - pb : requieres some logic to track what is currently being updated
             glUniform4fv(glGetUniformLocation(prog::prog1, "spheres"), NB_SPHERE, glm::value_ptr(geo::spheres[0]));
             glUniform4fv(glGetUniformLocation(prog::prog1, "planes"), NB_PLANE, glm::value_ptr(geo::planes[0]));
             glUniform3fv(glGetUniformLocation(prog::prog1, "tetra"), 4, glm::value_ptr(geo::tetrahedron[0]));
+            
+            //send lights info to GPU
             glUniform3fv(glGetUniformLocation(prog::prog1, "light_pos"), 1, glm::value_ptr(gbl::light));
             glUniform3fv(glGetUniformLocation(prog::prog1, "La"), 1, glm::value_ptr(gbl::L_a));
             glUniform3fv(glGetUniformLocation(prog::prog1, "Ld"), 1, glm::value_ptr(gbl::L_d));

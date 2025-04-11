@@ -1,5 +1,11 @@
 #version 430
-#define BGCOLOR vec4(1.0,0.15,0.15,1.0)
+
+//util pour illustrer certain truc
+#define NORMAL_OFFSET 0.01 //set to 0 to observe shadow acnee, leave it to 0.01 otherwise.
+#define LIGHT_WIDTH 1.5 //permet d'illustrer les softs shadows - TODO valeur approx ?
+
+
+#define BGCOLOR vec4(1.0,0.15,0.15,1.0) //red BG to immediately see it in debug
 
 uniform vec2 screen; // send SCREEN_X and SCREEN_Y
 
@@ -11,6 +17,7 @@ uniform float cam_distance;
 
 //shader info
 uniform int shadingMode;
+uniform int shadowMode;
 uniform float dtoCam_min;
 uniform float dtoCam_max;
 
@@ -20,12 +27,14 @@ uniform vec4 spheres[NB_SPHERE]; // v[].xyz coordinate and v[].w radius
 #define NB_PLANE 3
 uniform vec4 planes[NB_PLANE];
 uniform vec3 tetra[4];
-uniform vec3 light_pos;
 
+//lights info
+uniform vec3 light_pos;
 uniform vec3 La;
 uniform vec3 Ld;
 uniform vec3 Ls;
 
+//materials stored as a global array
 #define NB_MAT 5
 uniform vec3 KAs[NB_MAT];
 uniform vec3 KDs[NB_MAT];
@@ -75,9 +84,9 @@ float rayPlane(vec3 rayPos, vec3 rayDir, float planeOffset, vec3 planeNormal, ou
     
     float t = (planeOffset - dot(planeNormal, rayPos)) / denom;
     
-    if (t < 0.0) {
+    if (t < 0.0)
         return -1.0; // No intersection
-    }
+
     
     intersecPt = rayPos + t * rayDir;
     return t;
@@ -221,11 +230,49 @@ void main(){
         } //todo : lafortune
         
         //shadows
-        vec3 pt_foo, norm_foo;
-        int mat_foo;
-        float dist_to_light_obstructer = computeNearestIntersection(pt+0.1*norm, normalize(light_pos-pt), pt_foo, norm_foo, mat_foo);
-        if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, light_pos)){
-            col = vec3(0);
+        if(shadowMode == 0){ //shadow : None
+        } else{ //shadow : soft or hard
+            vec3 pt_foo, norm_foo;
+            int mat_foo;
+            if(shadowMode == 1){// hard shadow
+                float dist_to_light_obstructer = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(light_pos-pt), pt_foo, norm_foo, mat_foo);
+                //if intersection and distance smaller than light, obstruct
+                if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, light_pos)){
+                    col = vec3(0);
+                }
+            } else if(shadowMode == 2){ //soft shadow
+                //get a non colinear vector in general case : (set one of the smallest component to 1)
+                vec3 pt_l = normalize(light_pos-pt);
+                vec3 absN = abs(normalize(light_pos-pt));
+                vec3 arbitrary = vec3(
+                    absN.x <= absN.y && absN.x <= absN.z ? 1.0 : 0.0,
+                    absN.y < absN.x && absN.y <= absN.z ? 1.0 : 0.0,
+                    absN.z < absN.x && absN.z < absN.y ? 1.0 : 0.0);
+                //get Tanget, Bitangent
+                vec3 T = cross(pt_l, arbitrary);
+                vec3 BT = cross(pt_l, arbitrary);
+
+                //different light pos - p:1 / n:-1/ 0
+                vec3 lpos_p0 = light_pos + T * 1 * LIGHT_WIDTH + BT * 0 * LIGHT_WIDTH;
+                vec3 lpos_n0 = light_pos + T * -1 * LIGHT_WIDTH + BT * 0 * LIGHT_WIDTH;
+                vec3 lpos_0p = light_pos + T * 0 * LIGHT_WIDTH + BT * 1 * LIGHT_WIDTH;
+                vec3 lpos_0n = light_pos + T * 0 * LIGHT_WIDTH + BT * -1 * LIGHT_WIDTH;
+
+                //obstruct depending on number of ray passing
+                float coef = 1.0;
+                float dist_to_light_obstructer = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(light_pos-pt), pt_foo, norm_foo, mat_foo);
+                if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, light_pos)) coef -= 0.2;
+                dist_to_light_obstructer = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_0p-pt), pt_foo, norm_foo, mat_foo);
+                if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, lpos_0p)) coef -= 0.2;
+                dist_to_light_obstructer = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_0n-pt), pt_foo, norm_foo, mat_foo);
+                if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, lpos_0n)) coef -= 0.2;
+                dist_to_light_obstructer = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_p0-pt), pt_foo, norm_foo, mat_foo);
+                if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, lpos_p0)) coef -= 0.2;
+                dist_to_light_obstructer = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_n0-pt), pt_foo, norm_foo, mat_foo);
+                if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, lpos_n0)) coef -= 0.2;
+                
+                col = col * coef;
+            }
         }
         fColor = vec4(col,1.0);
     } else{
