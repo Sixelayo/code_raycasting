@@ -197,8 +197,6 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
     return t;
 }
 
-uniform int numCalls = 2; // Ou passe cette valeur dynamiquement
-
 void main(){
     vec2 UV = computeUV();
 
@@ -245,7 +243,6 @@ void main(){
         vec3 pt_foo, norm_foo;
         int mat_foo;
         if(shadowMode == 0){ //shadow : None
-            if(UV.x > 1) col = vec3(1,0,0); //TODO REMOVE DEBUG
         }
         else{ //shadow : soft or hard
             if(shadowMode == 1){// hard shadow
@@ -254,7 +251,6 @@ void main(){
                 if(dist_to_light_obstructer != -1 && dist_to_light_obstructer < distance(pt, light_pos)){
                     col = col*0.3;
                 }
-                if(UV.x > 0.9) col = vec3(0,1,0);
             } 
             else if(shadowMode == 2){ //soft shadow
                 //get a non colinear vector in general case : (set one of the smallest component to 1)
@@ -269,40 +265,10 @@ void main(){
                 vec3 T = cross(pt_l, arbitrary);
                 vec3 BT = cross(pt_l, T);
 
-                // //different light pos - p:1 / n:-1/ 0
-                vec3 lpos_p0 = light_pos + T * 1 * LIGHT_WIDTH + BT * 0 * LIGHT_WIDTH;
-                vec3 lpos_n0 = light_pos + T * -1 * LIGHT_WIDTH + BT * 0 * LIGHT_WIDTH;
-                vec3 lpos_0p = light_pos + T * 0 * LIGHT_WIDTH + BT * 1 * LIGHT_WIDTH;
-                vec3 lpos_0n = light_pos + T * 0 * LIGHT_WIDTH + BT * -1 * LIGHT_WIDTH;
+                // for n points,  sample different point on the light circles
 
-                // //obstruct depending on number of ray passing
-                float coef = 1.0;
-                // dist_to_light_obstructer : DTL1
-                {//obstruct one by one
-
-                    // le problème vient de 2 appel de computeNearestIntersection. Un seul c'est ok
-                    // computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_0p-pt), pt_foo, norm_foo, mat_foo);
-                    // computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_0n-pt), pt_foo, norm_foo, mat_foo);
-                    
-                    for (int var = 0; var < numCalls; var++) {
-                        vec3 arg1 = (var == 0) ? normalize(lpos_0p - pt) : normalize(lpos_0n - pt);
-                        computeNearestIntersection(pt + NORMAL_OFFSET * norm, arg1, pt_foo, norm_foo, mat_foo);
-                    }
-                    
-                    // float dtlo_1 = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(light_pos-pt), pt_foo, norm_foo, mat_foo);
-                    // if(dtlo_1 > 0 && dtlo_1 < distance(pt, light_pos)) coef -= 0.2;
-                    // float dtlo_2 = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_0p-pt), pt_foo, norm_foo, mat_foo);
-                    // if(dtlo_2 > 0 && dtlo_2 < distance(pt, lpos_0p)) coef -= 0.2;
-                    // float dtlo_3 = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_0n-pt), pt_foo, norm_foo, mat_foo);
-                    // if(dtlo_3 > 0 && dtlo_3 < distance(pt, lpos_0n)) coef -= 0.2;
-                    // float dtlo_4 = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_p0-pt), pt_foo, norm_foo, mat_foo);
-                    // if(dtlo_4 > 0 && dtlo_4 < distance(pt, lpos_p0)) coef -= 0.2;
-                    // float dtlo_5 = computeNearestIntersection(pt+NORMAL_OFFSET*norm, normalize(lpos_n0-pt), pt_foo, norm_foo, mat_foo);
-                    // if(dtlo_5 > 0 && dtlo_5 < distance(pt, lpos_n0)) coef -= 0.2;
-                }
-                
-                col = col * coef;
-                if(UV.x < -0.9) col = vec3(0,0,1);
+                //tmp value todo
+                col = vec3(1,1,0);
             }
         }
 
