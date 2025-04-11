@@ -50,6 +50,9 @@ namespace mat{
     glm::vec3 KDs[NB_MAT];
     glm::vec3 KSs[NB_MAT];
     float Hs[NB_MAT]; //shininess
+    float cReflects[NB_MAT]; //coef Reflections
+    float cRefracts[NB_MAT]; //coef Refractions
+    float Refrindexs[NB_MAT]; //index de refraction (par rapport à l'air ? à vérifier)
 
     void loadMat(){
         glUniform3fv(glGetUniformLocation(prog::prog1, "KAs"), NB_MAT, glm::value_ptr(KAs[0]));
@@ -159,6 +162,28 @@ namespace geo{
         tetrahedron[1] = glm::vec3(1,0,-1);
         tetrahedron[2] = glm::vec3(-1,0,1);
         tetrahedron[3] = glm::vec3(0,1,0);
+        
+        //scene 3 or idk
+        //const float octo = 10;
+        // spheres[0] = glm::vec4( 2 * octo, 3, -1 * octo, 2);
+        // spheres[1] = glm::vec4( 2 * octo, 3, 1 * octo, 2);
+        // spheres[2] = glm::vec4( 1 * octo, 3, 2 * octo, 2);
+        // spheres[3] = glm::vec4( -1 * octo, 3, 2 * octo, 2);
+        // spheres[4] = glm::vec4( -2 * octo, 3, 1 * octo, 2);
+        // spheres[5] = glm::vec4( -2 * octo, 3, -1 * octo, 2);
+        // spheres[6] = glm::vec4( -1 * octo, 3, -2 * octo, 2);
+        // spheres[7] = glm::vec4( 1 * octo, 3, -2 * octo, 2);
+        
+        const float sep = 8;
+        spheres[0] = glm::vec4( 2 * sep, 3, -2 * sep, 3); //100% reflective
+        spheres[1] = glm::vec4( 1 * sep, 3, -1 * sep, 3); //100% refractive 
+        spheres[2] = glm::vec4( -1 * sep, 3, 1 * sep, 3); //100% refractive (hollow)
+        spheres[3] = glm::vec4( -1 * sep, 3, 1 * sep, 3);
+        spheres[4] = glm::vec4( -2 * sep, 3, 2 * sep, 3); //50 - 50
+        
+        spheres[5] = glm::vec4( 1.5 * sep, 3+sep, -1.5 * sep, 3);
+        spheres[6] = glm::vec4( 0 * sep, 3+sep, 0 * sep, 3);
+        spheres[7] = glm::vec4( -1.5 * sep, 3+sep, 1.5 * sep, 3);
     }
 
 } //end namespace geo

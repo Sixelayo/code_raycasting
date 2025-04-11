@@ -48,6 +48,9 @@ uniform vec3 KAs[NB_MAT];
 uniform vec3 KDs[NB_MAT];
 uniform vec3 KSs[NB_MAT];
 uniform float Hs[NB_MAT];
+uniform float cReflects[NB_MAT];
+uniform float cRefracts[NB_MAT];
+uniform float Refrindexs[NB_MAT];
 
 out vec4 fColor; // final color
 

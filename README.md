@@ -1,3 +1,5 @@
+> Code was somewhat decent until I came back after 3 week and now its an absolute mess :/
+
 # compile
 
 run vs code tasks
@@ -21,10 +23,10 @@ via UI - anything
 
 ## mandatory
 
-- avoir un set up qui force les scene, (default et version plate avec un checker)
+- gestion mat ok pour tt les exemples de la scene 2
+- current 3-1 : position des sphere et tt les cas à exposer
 
-- Constructive solid geometry
-- antialiasing
+- antialiasing + CSG (tp2-3)
 
 
 ## optionel
@@ -36,4 +38,8 @@ via UI - anything
 - on commit prooved bug 849f23f : dans le block else qui gère les soft shadow du code jamais exécuté casse tout. L aversion commenter ou la version avec la boucle for fait strictement la même chose mais résultat différent. Ca vient probablement du nombre trop élevé de parameter marque `out`
 Si le block else qui gère les soft shadow tout est cassé, même lorsque le code n'est pas appelé.
 En particulier si 2 fonction nearest sont appelé ça cassse.. Déclafier numcalls en uniform permet d'empêcher le compilateur de déroulé la boucle for.
+
+# reminder
+
+- 1-4 down from right to left
 
