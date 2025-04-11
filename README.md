@@ -19,7 +19,8 @@ via UI - anything
 
 # todo
 
-- corriger les ombres qui sont complètement cassé
+## mandatory
+
 - avoir un set up qui force les scene, (default et version plate avec un checker)
 
 - soft shadows - à corriger avec la vrai méthode psk actuellement c'est n'imp
@@ -30,3 +31,9 @@ via UI - anything
 ## optionel
 
 - lafortune brdf !
+
+## bug
+
+Si le block else qui gère les soft shadow tout est cassé, même lorsque le code n'est pas appelé.
+En particulier si 2 fonction nearest sont appelé ça cassse.
+
