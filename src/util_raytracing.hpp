@@ -29,6 +29,7 @@ namespace gbl{
 
     ShadingMode curr_mode = Phong;
     ShadowMode curr_shadow = None_shadow;
+    int curr_scene = 0;
     float dtoCam_min =1.0f;
     float dtoCam_max = 5.0f;
 
@@ -129,6 +130,8 @@ namespace geo{
         for(int i=0; i< NB_PLANE; i++)
             normalize_plane(i);
     }
+    
+
     void init_tetra(){
         tetrahedron[0] = glm::vec3(0);
         tetrahedron[1] = glm::vec3(1,0,0);
@@ -137,9 +140,25 @@ namespace geo{
     }
     
     void initGeo(){
+        gbl::curr_scene = 1;
+        glUniform1i(glGetUniformLocation(prog::prog1, "scene"), gbl::curr_scene);
         generate_random_spheres();
         init_plane();
         init_tetra();
+    }
+
+    void init_scene2(){
+        gbl::curr_scene = 2;
+        glUniform1i(glGetUniformLocation(prog::prog1, "scene"), gbl::curr_scene);
+        planes[0] = glm::vec4(0,1,0,-7);
+        planes[1] = glm::vec4(0,1,0,-8);
+        planes[2] = glm::vec4(0,1,0,-9);
+        for(int i=0; i< NB_PLANE; i++)
+            normalize_plane(i);
+        tetrahedron[0] = glm::vec3(-1,0,-1);
+        tetrahedron[1] = glm::vec3(1,0,-1);
+        tetrahedron[2] = glm::vec3(-1,0,1);
+        tetrahedron[3] = glm::vec3(0,1,0);
     }
 
 } //end namespace geo
@@ -168,6 +187,7 @@ namespace util{
         glUseProgram(prog::prog1);
         glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
         glUniform1i(glGetUniformLocation(prog::prog1, "shadowMode"), gbl::curr_shadow);        
+        glUniform1i(glGetUniformLocation(prog::prog1, "scene"), gbl::curr_scene);        
     }
 
 }
@@ -346,6 +366,10 @@ namespace ui{
         }
 // ----------------------------------------------- GEOMETRY -----------------------------------------------------------------
         if(ImGui::CollapsingHeader("Geometry", ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::Button("scene 1")) geo::initGeo();
+            ImGui::SameLine();
+            if(ImGui::Button("scene 2")) geo::init_scene2();
+
             if(ImGui::TreeNode("spheres")){
                 static int focus_i=0;
                 ImGui::SliderInt("focus index", &focus_i,0, NB_SPHERE-1); //warning : arbitrary memory access lol

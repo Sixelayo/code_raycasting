@@ -3,6 +3,7 @@
 //util pour illustrer certain truc
 #define NORMAL_OFFSET 0.01 //set to 0 to observe shadow acnee, leave it to 0.01 otherwise.
 #define LIGHT_WIDTH 0.5 //permet d'illustrer les softs shadows - TODO valeur approx ?
+#define CHECKER_SIZE 3
 
 //#pragma optimize(off)
 
@@ -22,6 +23,8 @@ uniform float cam_distance;
 //shader info
 uniform int shadingMode;
 uniform int shadowMode; 
+uniform int scene; 
+
 //int shadowMode = 0; //what is going on ? ? ?
 uniform float dtoCam_min;
 uniform float dtoCam_max;
@@ -174,7 +177,7 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
             t = new_t; 
             pt = new_pt; 
             norm = new_norm;
-            matId = i %NB_MAT;
+            matId = scene == 1 ? i %NB_MAT : -1;
         }
     }
     //triangles
@@ -224,17 +227,25 @@ void main(){
             vec3 L = normalize(light_pos - pt);
             vec3 V = normalize(cam_pos - pt);
             vec3 R = reflect(-L, norm);
-            col = La*KAs[matId]; //ambient
-            col += Ld*KDs[matId]*dot(norm, L); //diffuse
-            col += Ls*KSs[matId]*pow(max(0,dot(V, R)),Hs[matId]); //specular
+            if(matId == -1){
+                col = int(floor(pt.x / CHECKER_SIZE) + floor(pt.z / CHECKER_SIZE)) % 2 == 0 ? vec3(1) : vec3(0);
+            } else{
+                col = La*KAs[matId]; //ambient
+                col += Ld*KDs[matId]*dot(norm, L); //diffuse
+                col += Ls*KSs[matId]*pow(max(0,dot(V, R)),Hs[matId]); //specular
+            }
         }else if(shadingMode == 4){//bling
             vec3 L = normalize(light_pos - pt);
             vec3 V = normalize(cam_pos - pt);
             vec3 H = normalize(L+V);
             vec3 R = reflect(-L, norm);
-            col = La*KAs[matId]; //ambient
-            col += Ld*KDs[matId]*dot(norm, L); //diffuse
-            col += Ls*KSs[matId]*pow(max(0,dot(norm, H)),Hs[matId]); //specular
+            if(matId == -1){
+                col = int(floor(pt.x / CHECKER_SIZE) + floor(pt.z / CHECKER_SIZE)) % 2 == 0 ? vec3(1) : vec3(0);
+            } else{
+                col = La*KAs[matId]; //ambient
+                col += Ld*KDs[matId]*dot(norm, L); //diffuse
+                col += Ls*KSs[matId]*pow(max(0,dot(norm, H)),Hs[matId]); //specular
+            }
         } //todo optionel : lafortune
         
 
