@@ -51,6 +51,7 @@ uniform float Hs[NB_MAT];
 uniform float cReflects[NB_MAT];
 uniform float cRefracts[NB_MAT];
 uniform float Refrindexs[NB_MAT];
+#define MAT_CHECKER -1
 
 out vec4 fColor; // final color
 
@@ -170,7 +171,18 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
             t = new_t; 
             pt = new_pt; 
             norm = new_norm;
-            matId = i %NB_MAT;
+            if(scene ==1){
+                matId = i%NB_MAT;
+            }else if(scene ==2){
+                switch(i){ //in scene 2:
+                    case 0: matId=0; break; //100% reflective 
+                    case 1: matId=1; break; //100% refractive solid
+                    case 2: matId=1; break; //100% refractive hollow
+                    case 3: matId=2; break; //100% refractive hollow inside
+                    case 4: matId=3; break; //50% relective 50% refractive
+                    default:matId=4; break; //another color unset
+                }
+            }
         }
     }
     //planes
@@ -180,7 +192,7 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
             t = new_t; 
             pt = new_pt; 
             norm = new_norm;
-            matId = scene == 1 ? i %NB_MAT : -1;
+            matId = scene == 1 ? i %NB_MAT : MAT_CHECKER;
         }
     }
     //triangles
@@ -230,7 +242,7 @@ void main(){
             vec3 L = normalize(light_pos - pt);
             vec3 V = normalize(cam_pos - pt);
             vec3 R = reflect(-L, norm);
-            if(matId == -1){
+            if(matId == MAT_CHECKER){
                 col = int(floor(pt.x / CHECKER_SIZE) + floor(pt.z / CHECKER_SIZE)) % 2 == 0 ? vec3(1) : vec3(0);
             } else{
                 col = La*KAs[matId]; //ambient
@@ -242,7 +254,7 @@ void main(){
             vec3 V = normalize(cam_pos - pt);
             vec3 H = normalize(L+V);
             vec3 R = reflect(-L, norm);
-            if(matId == -1){
+            if(matId == MAT_CHECKER){
                 col = int(floor(pt.x / CHECKER_SIZE) + floor(pt.z / CHECKER_SIZE)) % 2 == 0 ? vec3(1) : vec3(0);
             } else{
                 col = La*KAs[matId]; //ambient

@@ -178,12 +178,32 @@ namespace geo{
         spheres[0] = glm::vec4( 2 * sep, 3, -2 * sep, 3); //100% reflective
         spheres[1] = glm::vec4( 1 * sep, 3, -1 * sep, 3); //100% refractive 
         spheres[2] = glm::vec4( -1 * sep, 3, 1 * sep, 3); //100% refractive (hollow)
-        spheres[3] = glm::vec4( -1 * sep, 3, 1 * sep, 3);
+        spheres[3] = glm::vec4( -1 * sep, 3, 1 * sep, 2.8);
         spheres[4] = glm::vec4( -2 * sep, 3, 2 * sep, 3); //50 - 50
         
         spheres[5] = glm::vec4( 1.5 * sep, 3+sep, -1.5 * sep, 3);
         spheres[6] = glm::vec4( 0 * sep, 3+sep, 0 * sep, 3);
         spheres[7] = glm::vec4( -1.5 * sep, 3+sep, 1.5 * sep, 3);
+
+        //mat 0 : 100% reflective
+        mat::cReflects[0] = 1.0f;
+        mat::cRefracts[0] = 0.0;
+        mat::Refrindexs[0] = 1.0f;
+
+        //mat 1 : 100% refractive (outside)
+        mat::cReflects[1] = 0.0f;
+        mat::cRefracts[1] = 1.0;
+        mat::Refrindexs[1] = 1.5f;
+
+        //mat 2 : 100% refractive (inside)
+        mat::cReflects[2] = 0.0f;
+        mat::cRefracts[2] = 1.0;
+        mat::Refrindexs[2] = 0.667f;
+
+        //mat 3 : 50% / 50% refractive (inside)
+        mat::cReflects[3] = 0.5f;
+        mat::cRefracts[3] = 0.5f;
+        mat::Refrindexs[3] = 1.5f;
     }
 
 } //end namespace geo
