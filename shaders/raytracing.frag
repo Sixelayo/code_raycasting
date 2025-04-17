@@ -10,7 +10,7 @@
 
 
 
-#define BGCOLOR vec4(1.0,0.15,0.15,1.0) //red BG to immediately see it in debug
+#define BGCOLOR vec3(1.0,0.15,0.15) //red BG to immediately see it in debug
 
 uniform vec2 screen; // send SCREEN_X and SCREEN_Y
 
@@ -23,7 +23,9 @@ uniform float cam_distance;
 //shader info
 uniform int shadingMode;
 uniform int shadowMode; 
-uniform int scene; 
+uniform int scene;
+uniform int rec_depth;
+
 
 //int shadowMode = 0; //what is going on ? ? ?
 uniform float dtoCam_min;
@@ -215,19 +217,7 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
     return t;
 }
 
-void main(){
-    vec2 UV = computeUV();
-
-    //Construct a primary ray going through UV coordinate (x,y)
-    vec3 main_dir = UV.x*cam_right + UV.y*cam_up - cam_distance*cam_forward;
-    
-    vec3 pt, norm;
-    int matId;
-
-    //compute nearest intersection
-    float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
-    
-    //compute shadow ray (depending on mode)
+vec3 evalColor(float t, vec3 pt, vec3 norm, int matId){
     if(t>0){
         vec3 col = vec3(0); //intermediate col before shadow
         if(shadingMode ==0 ){ //normal
@@ -263,8 +253,6 @@ void main(){
             }
         } //todo optionel : lafortune
         
-
-
         //                 ---  shadows ---
         vec3 pt_foo, norm_foo;
         int mat_foo;
@@ -298,10 +286,27 @@ void main(){
             }
         }
 
-        fColor = vec4(col,1.0);
+        return col;
     } else{
-        fColor = BGCOLOR;
+        return BGCOLOR;
     }
+}
+
+void main(){
+    vec2 UV = computeUV();
+
+    //Construct a primary ray going through UV coordinate (x,y)
+    vec3 main_dir = UV.x*cam_right + UV.y*cam_up - cam_distance*cam_forward;
+    
+    vec3 pt, norm;
+    int matId;
+
+    //compute nearest intersection
+    float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
+    //compute shadow ray (depending on mode)
+    vec3 col = evalColor(t, pt, norm, matId);
+    
+    fColor = vec4(col,1.0);
 
 }
 

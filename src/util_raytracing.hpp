@@ -36,6 +36,8 @@ namespace gbl{
     glm::vec3 light;
     glm::vec3 L_a, L_d, L_s;
     float* controlled; //a pointer to a float 3 that keyboard controls
+
+    int rec_depth = 1;
 }
 
 namespace shaders{
@@ -232,7 +234,8 @@ namespace util{
         glUseProgram(prog::prog1);
         glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
         glUniform1i(glGetUniformLocation(prog::prog1, "shadowMode"), gbl::curr_shadow);        
-        glUniform1i(glGetUniformLocation(prog::prog1, "scene"), gbl::curr_scene);        
+        glUniform1i(glGetUniformLocation(prog::prog1, "scene"), gbl::curr_scene);      
+        glUniform1i(glGetUniformLocation(prog::prog1, "rec_depth"), gbl::rec_depth);      
     }
 
 }
@@ -448,6 +451,13 @@ namespace ui{
 
                 ImGui::TreePop();
             }
+        }
+
+        if(ImGui::CollapsingHeader("other info", ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::InputInt("recursion depth", &gbl::rec_depth)){
+                glUniform1i(glGetUniformLocation(prog::prog1, "rec_depth"), gbl::rec_depth);
+            }
+            //todo other parameter for td3 & 4
         }
 
         ImGui::End();
