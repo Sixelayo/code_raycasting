@@ -61,6 +61,9 @@ namespace mat{
         glUniform3fv(glGetUniformLocation(prog::prog1, "KDs"), NB_MAT, glm::value_ptr(KDs[0]));
         glUniform3fv(glGetUniformLocation(prog::prog1, "KSs"), NB_MAT, glm::value_ptr(KSs[0]));
         glUniform1fv(glGetUniformLocation(prog::prog1, "Hs"), NB_MAT, Hs);
+        glUniform1fv(glGetUniformLocation(prog::prog1, "cReflects"), NB_MAT, cReflects);
+        glUniform1fv(glGetUniformLocation(prog::prog1, "cRefracts"), NB_MAT, cRefracts);
+        glUniform1fv(glGetUniformLocation(prog::prog1, "Refrindexs"), NB_MAT, Refrindexs);
     }
     
     void randomizes(){
@@ -70,7 +73,7 @@ namespace mat{
             KSs[i] = glm::vec3(randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f),randomInRange(0.0f,1.0f));
             Hs[i] = randomInRange(1.0f,256.0f);
         }
-        //loadMat(); //useless cuz load every frame
+        loadMat(); //useless cuz load every frame
     }
     void allwhite(){
         for(int i=0; i<NB_MAT; i++){
@@ -150,6 +153,7 @@ namespace geo{
         generate_random_spheres();
         init_plane();
         init_tetra();
+        mat::randomizes();
     }
 
     void init_scene2(){
@@ -206,6 +210,8 @@ namespace geo{
         mat::cReflects[3] = 0.5f;
         mat::cRefracts[3] = 0.5f;
         mat::Refrindexs[3] = 1.5f;
+
+        mat::loadMat();
     }
 
 } //end namespace geo

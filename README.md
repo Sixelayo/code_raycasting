@@ -1,5 +1,9 @@
 > Code was somewhat decent until I came back after 3 week and now its an absolute mess :/
 
+# current
+
+- profondeur 2 dans le raytracing
+
 # compile
 
 run vs code tasks
@@ -35,6 +39,7 @@ via UI - anything
 
 ## bug
 
+- on peut pas repasser de la scene 2 vers la 1 (materiaux détruit)
 - on commit prooved bug 849f23f : dans le block else qui gère les soft shadow du code jamais exécuté casse tout. L aversion commenter ou la version avec la boucle for fait strictement la même chose mais résultat différent. Ca vient probablement du nombre trop élevé de parameter marque `out`
 Si le block else qui gère les soft shadow tout est cassé, même lorsque le code n'est pas appelé.
 En particulier si 2 fonction nearest sont appelé ça cassse.. Déclafier numcalls en uniform permet d'empêcher le compilateur de déroulé la boucle for.

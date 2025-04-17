@@ -93,7 +93,6 @@ int main(int argc, char* argv[]) {
 
     initIMGUI(window);
 
-    mat::randomizes(); //also send to shader prog but doesn't work for some reasons ??
     geo::initGeo();
 
 
@@ -130,7 +129,7 @@ int main(int argc, char* argv[]) {
             glUniform3fv(glGetUniformLocation(prog::prog1, "Ls"), 1, glm::value_ptr(gbl::L_s));
             
             //send materials data to gpu 
-            //todo optim : only when needed
+            //I though this wasn't needed but for some reason I can't remove this ...
             mat::loadMat();
 
             //send camera info to gpu

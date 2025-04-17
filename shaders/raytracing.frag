@@ -292,6 +292,24 @@ vec3 evalColor(float t, vec3 pt, vec3 norm, int matId){
     }
 }
 
+vec3 trace1(vec3 ray_src, vec3 ray_dir){
+    vec3 pt, norm;
+    int matId;
+    float t = computeNearestIntersection(ray_src, ray_dir , pt, norm, matId);
+    vec3 shading = evalColor(t, pt, norm, matId);
+    //todo profondeur 2
+    return shading;
+}
+
+vec3 trace(vec3 ray_src, vec3 ray_dir){
+    vec3 pt, norm;
+    int matId;
+    float t = computeNearestIntersection(ray_src, ray_dir , pt, norm, matId);
+    vec3 shading = evalColor(t, pt, norm, matId);
+    //todo profondeur 2
+    return shading;
+}
+
 void main(){
     vec2 UV = computeUV();
 
@@ -304,7 +322,19 @@ void main(){
     //compute nearest intersection
     float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
     //compute shadow ray (depending on mode)
-    vec3 col = evalColor(t, pt, norm, matId);
+    vec3 shading = evalColor(t, pt, norm, matId);
+    vec3 col;
+    if(matId>=0){ //negative material are speciale case
+        col = (1-cReflects[matId]-cRefracts[matId])*shading;
+        if(rec_depth >= 1){
+            if (cReflects[matId]>0.001)
+                col += cReflects[matId] * trace1(pt+0.001*norm, reflect(main_dir, norm));
+            if (cRefracts[matId]>0.001)
+                col += cRefracts[matId] * trace1(pt-0.001*norm, refract(main_dir, norm, Refrindexs[matId]));
+        }
+    } else{ //default for checker material
+        col = shading;
+    }
     
     fColor = vec4(col,1.0);
 
