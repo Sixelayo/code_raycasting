@@ -81,9 +81,9 @@ int main(int argc, char* argv[]) {
     camera.init(45,gbl::SCREEN_X, gbl::SCREEN_Y);
     util::loadQuad(gbl::vaoquad, gbl::vboquad);
     gbl::light = glm::vec3(3,10,3);
-    gbl::L_a = glm::vec3(0.2f);
-    gbl::L_d = glm::vec3(1);
-    gbl::L_s = glm::vec3(1);
+    gbl::L_a = glm::vec3(0.7f);
+    gbl::L_d = glm::vec3(0.4f);
+    gbl::L_s = glm::vec3(1.0f);
 
     {//shaders initialisation
         shaders::vert_passthrouhg = loadshader("shaders/passthrough.vert", GL_VERTEX_SHADER);
@@ -96,7 +96,8 @@ int main(int argc, char* argv[]) {
     geo::initGeo();
 
 
-    util::sendToGPUOnce();    
+    util::sendToGPUOnce();
+    mat::noReflnoRefrac();    
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))

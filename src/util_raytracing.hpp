@@ -65,6 +65,14 @@ namespace mat{
         glUniform1fv(glGetUniformLocation(prog::prog1, "cRefracts"), NB_MAT, cRefracts);
         glUniform1fv(glGetUniformLocation(prog::prog1, "Refrindexs"), NB_MAT, Refrindexs);
     }
+
+    void noReflnoRefrac(){
+        for(int i=0; i<NB_MAT; i++){
+            cReflects[i] = 0.0f;
+            cRefracts[i] = 0.0f;
+            Refrindexs[i] =1.0f;
+        }
+    }
     
     void randomizes(){
         for(int i=0; i<NB_MAT; i++){

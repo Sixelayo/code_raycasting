@@ -65,7 +65,7 @@ vec2 computeUV(){
     return uv/ratio;
 }
 
-float raySphere(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out vec3 intersecPt, out vec3 normal){
+float raySphere(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius){
     vec3 oMc = rayPos - spherePos; // o minus c
     
     float a = dot(rayDir, rayDir);
@@ -76,16 +76,12 @@ float raySphere(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, ou
     if(d>0){ //solution exist
         float t = (-b-sqrt(d))/(2*a);
         if(t>0){//solution are in front and not behind
-            intersecPt = rayPos + t * rayDir;
-            normal = normalize(intersecPt - spherePos);
             return t;
         }
     }
     return -1;
 }
-float rayPlane(vec3 rayPos, vec3 rayDir, float planeOffset, vec3 planeNormal, out vec3 intersecPt, out vec3 normal){    
-    normal = planeNormal;
-    
+float rayPlane(vec3 rayPos, vec3 rayDir, float planeOffset, vec3 planeNormal){        
     // Calculate denominator (dot product of ray direction and plane normal)
     float denom = dot(planeNormal, rayDir);
     
@@ -99,11 +95,9 @@ float rayPlane(vec3 rayPos, vec3 rayDir, float planeOffset, vec3 planeNormal, ou
     if (t < 0.0)
         return -1.0; // No intersection
 
-    
-    intersecPt = rayPos + t * rayDir;
     return t;
 }
-float rayTriangle(vec3 rayPos, vec3 rayDir, vec3 p0, vec3 p1, vec3 p2, out vec3 intersecPt, out vec3 normal){
+float rayTriangle(vec3 rayPos, vec3 rayDir, vec3 p0, vec3 p1, vec3 p2){
     const float EPSILON = 0.000001;
 
     // Calculate edges of the triangle
@@ -143,15 +137,6 @@ float rayTriangle(vec3 rayPos, vec3 rayDir, vec3 p0, vec3 p1, vec3 p2, out vec3 
     if (t < EPSILON) {
         return -1.0; // Intersection behind ray origin
     }
-
-    // Calculate intersection point
-    intersecPt = rayPos + rayDir * t;
-
-    // Calculate triangle normal (unnormalized)
-    normal = cross(edge1, edge2);
-    // Normalize the normal (optional, depending on your needs)
-    normal = normalize(normal);
-
     return t;
 }
 /* returns the distance to the nearest intersection of the ray (rayPos, rayDir)
@@ -162,17 +147,14 @@ raySphere - rayPlane - rayTriangle returns -1 if no intersection, t the distance
 float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3 norm, out int matId){
     float t = 999999;
     
-    float new_t;
-    vec3 new_pt, new_norm;
-    int new_mat; 
-    
+    float new_t;    
     //spheres
     for(int i = 0; i < NB_SPHERE; i++){
-        new_t = raySphere(rayPos, rayDir, spheres[i].xyz, spheres[i].w, new_pt, new_norm);
+        new_t = raySphere(rayPos, rayDir, spheres[i].xyz, spheres[i].w/*, new_pt, new_norm*/);
         if(new_t > 0 && new_t < t){
             t = new_t; 
-            pt = new_pt; 
-            norm = new_norm;
+            pt = rayPos + t * rayDir;
+            norm = normalize(pt - spheres[i].w);
             if(scene ==1){
                 matId = i%NB_MAT;
             }else if(scene ==2){
@@ -189,29 +171,29 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
     }
     //planes
     for(int i = 0; i < NB_PLANE; i++){
-        float new_t = rayPlane(rayPos, rayDir, planes[i].w, planes[i].xyz, new_pt, new_norm);
+        float new_t = rayPlane(rayPos, rayDir, planes[i].w, planes[i].xyz);
         if(new_t >0 && new_t < t){
             t = new_t; 
-            pt = new_pt; 
-            norm = new_norm;
+            pt = rayPos + t * rayDir; 
+            norm = planes[i].xyz;
             matId = scene == 1 ? i %NB_MAT : MAT_CHECKER;
         }
     }
     //triangles
-    {//only tetrahedron supports for now
+    if(scene==1){//only tetrahedron in scene 1 supports for now
         vec3 pa = tetra[0];
         vec3 pb = tetra[1];
         vec3 pc = tetra[2];
         vec3 pd = tetra[3];
 
-        new_t= rayTriangle(rayPos, rayDir, pa, pc, pb, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
-        new_t = rayTriangle(rayPos, rayDir, pb, pd, pc, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
-        new_t = rayTriangle(rayPos, rayDir, pa, pb, pd, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
-        new_t = rayTriangle(rayPos, rayDir, pa, pd, pc, new_pt, new_norm);
-        if(new_t >0 && new_t < t){t = new_t; pt = new_pt; norm = new_norm; matId = 0;}
+        new_t = rayTriangle(rayPos, rayDir, pa, pc, pb);
+        if(new_t >0 && new_t < t){t = new_t; pt = rayPos + rayDir*t; norm=normalize(cross(pc-pa, pb-pa)); matId = 4;}
+        new_t = rayTriangle(rayPos, rayDir, pb, pd, pc);
+        if(new_t >0 && new_t < t){t = new_t; pt = rayPos + rayDir*t; norm=normalize(cross(pd-pb, pc-pb)); matId = 4;}
+        new_t = rayTriangle(rayPos, rayDir, pa, pb, pd);
+        if(new_t >0 && new_t < t){t = new_t; pt = rayPos + rayDir*t; norm=normalize(cross(pb-pa, pd-pa)); matId = 4;}
+        new_t = rayTriangle(rayPos, rayDir, pa, pd, pc);
+        if(new_t >0 && new_t < t){t = new_t; pt = rayPos + rayDir*t; norm=normalize(cross(pd-pa, pc-pa)); matId = 4;}
     }
     if(999999-t<0.1) return -1;
     return t;
