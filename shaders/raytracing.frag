@@ -1,7 +1,7 @@
 #version 430
 
 //util pour illustrer certain truc
-#define NORMAL_OFFSET 0.01 //set to 0 to observe shadow acnee, leave it to 0.01 otherwise.
+#define NORMAL_OFFSET 0.0001 //set to 0 to observe shadow acnee, leave it to 0.01 otherwise.
 #define LIGHT_WIDTH 0.5 //permet d'illustrer les softs shadows - TODO valeur approx ?
 #define CHECKER_SIZE 3
 
@@ -150,7 +150,7 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
     float new_t;    
     //spheres
     for(int i = 0; i < NB_SPHERE; i++){
-        new_t = raySphere(rayPos, rayDir, spheres[i].xyz, spheres[i].w/*, new_pt, new_norm*/);
+        new_t = raySphere(rayPos, rayDir, spheres[i].xyz, spheres[i].w);
         if(new_t > 0 && new_t < t){
             t = new_t; 
             pt = rayPos + t * rayDir;
@@ -195,12 +195,16 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
         new_t = rayTriangle(rayPos, rayDir, pa, pd, pc);
         if(new_t >0 && new_t < t){t = new_t; pt = rayPos + rayDir*t; norm=normalize(cross(pd-pa, pc-pa)); matId = 4;}
     }
-    if(999999-t<0.1) return -1;
+    if(999999-t<0.1){
+        return -1;
+    }
     return t;
 }
 
 vec3 evalColor(float t, vec3 pt, vec3 norm, int matId){
-    if(t>0){
+    if(t<0){
+        return BGCOLOR;
+    }else{
         vec3 col = vec3(0); //intermediate col before shadow
         if(shadingMode ==0 ){ //normal
             col = abs(norm);
@@ -269,8 +273,6 @@ vec3 evalColor(float t, vec3 pt, vec3 norm, int matId){
         }
 
         return col;
-    } else{
-        return BGCOLOR;
     }
 }
 
@@ -283,14 +285,6 @@ vec3 trace1(vec3 ray_src, vec3 ray_dir){
     return shading;
 }
 
-vec3 trace(vec3 ray_src, vec3 ray_dir){
-    vec3 pt, norm;
-    int matId;
-    float t = computeNearestIntersection(ray_src, ray_dir , pt, norm, matId);
-    vec3 shading = evalColor(t, pt, norm, matId);
-    //todo profondeur 2
-    return shading;
-}
 
 void main(){
     vec2 UV = computeUV();
@@ -305,20 +299,20 @@ void main(){
     float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
     //compute shadow ray (depending on mode)
     vec3 shading = evalColor(t, pt, norm, matId);
-    vec3 col;
-    if(matId>=0){ //negative material are speciale case
-        col = (1-cReflects[matId]-cRefracts[matId])*shading;
+    if(t > 0 && matId>=0){ //only multi ray if hit and regular material negative material index use directly eval
+        shading = (1-cReflects[matId]-cRefracts[matId])*shading;
         if(rec_depth >= 1){
-            if (cReflects[matId]>0.001)
-                col += cReflects[matId] * trace1(pt+0.001*norm, reflect(main_dir, norm));
-            if (cRefracts[matId]>0.001)
-                col += cRefracts[matId] * trace1(pt-0.001*norm, refract(main_dir, norm, Refrindexs[matId]));
+            if (cReflects[matId]>0.001){
+                shading += cReflects[matId] * trace1(pt+0.0001*norm, reflect(main_dir, norm));
+                // vec3 V = main_dir; vec3 N = norm;
+                // shading += cReflects[matId] * trace1(pt+0.0001*norm, V - 2 * dot(V,N)*N);
+            }if (cRefracts[matId]>0.001){
+                shading += cRefracts[matId] * trace1(pt-0.001*norm, refract(main_dir, norm, Refrindexs[matId]));
+            }
         }
-    } else{ //default for checker material
-        col = shading;
     }
     
-    fColor = vec4(col,1.0);
+    fColor = vec4(shading,1.0);
 
 }
 
