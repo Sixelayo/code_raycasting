@@ -3,6 +3,7 @@
 # current
 
 - profondeur 2 dans le raytracing
+- fix bug : certaines sphere s'affiche au dessu d'autre dans l'ordre d'affichage (wtf) : on peut voir la 7 à travers la 5 ?? vraiment un bug compilateur ?
 
 # compile
 

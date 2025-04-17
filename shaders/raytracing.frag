@@ -5,9 +5,7 @@
 #define LIGHT_WIDTH 0.5 //permet d'illustrer les softs shadows - TODO valeur approx ?
 #define CHECKER_SIZE 3
 
-//#pragma optimize(off)
-
-
+#pragma optimize(off)
 
 
 #define BGCOLOR vec3(1.0,0.15,0.15) //red BG to immediately see it in debug
@@ -158,7 +156,9 @@ float rayTriangle(vec3 rayPos, vec3 rayDir, vec3 p0, vec3 p1, vec3 p2, out vec3 
 }
 /* returns the distance to the nearest intersection of the ray (rayPos, rayDir)
 if no intersection returns -1
-if relevant : updates pt (intersection point), norm (normal at intersection) and matId (material at of intersected*/
+if relevant : updates pt (intersection point), norm (normal at intersection) and matId (material at of intersected)
+
+raySphere - rayPlane - rayTriangle returns -1 if no intersection, t the distance to intersection if intersect*/
 float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3 norm, out int matId){
     float t = 999999;
     
@@ -169,7 +169,7 @@ float computeNearestIntersection(vec3 rayPos, vec3 rayDir, out vec3 pt, out vec3
     //spheres
     for(int i = 0; i < NB_SPHERE; i++){
         new_t = raySphere(rayPos, rayDir, spheres[i].xyz, spheres[i].w, new_pt, new_norm);
-        if(new_t >0 && new_t < t){
+        if(new_t > 0 && new_t < t){
             t = new_t; 
             pt = new_pt; 
             norm = new_norm;
