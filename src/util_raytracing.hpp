@@ -41,6 +41,8 @@ namespace gbl{
     float shadow_size = 0.1;
     int SOFT_SHADOW_SAMPLE = 100;
 
+    bool antialiasing = false;
+
     bool motion_blurr = false;
     int MOTION_BLURR_SAMPLES = 25;
     glm::vec3 mb_dir = glm::vec3(1,0,0);
@@ -407,6 +409,9 @@ namespace ui{
         if(ImGui::CollapsingHeader("Shading mode", ImGuiTreeNodeFlags_DefaultOpen)){
 // ----------------------------------------------- LIGHTS -----------------------------------------------------------------
 
+            if(ImGui::Checkbox("antialiasing", &gbl::antialiasing)){
+                glUniform1i(glGetUniformLocation(prog::prog1, "antialiasing"), gbl::antialiasing ? 1 : 0);
+            }
             const char* item_cmb1[] =  {"Normal", "Position", "distance to Cam", "Phong", "Bling"};
             if(ImGui::Combo("Shading : ", (int*)&gbl::curr_mode, item_cmb1, IM_ARRAYSIZE(item_cmb1))){
                 glUniform1i(glGetUniformLocation(prog::prog1, "shadingMode"), gbl::curr_mode);
@@ -476,6 +481,8 @@ namespace ui{
             if(ImGui::Button("scene 1")) geo::initGeo();
             ImGui::SameLine();
             if(ImGui::Button("scene 2")) geo::init_scene2();
+            ImGui::SameLine();
+            if(ImGui::Button("scene 3")) gbl::curr_scene = 3;
 
             if(ImGui::TreeNode("spheres")){
                 static int focus_i=0;
