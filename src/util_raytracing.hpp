@@ -120,10 +120,11 @@ namespace geo{
     float yRange[2] = {-5.0f, 5.0f};
     float zRange[2] = {-5.0f, 5.0f};
     float rRange[2] = {1.0f, 2.0f};
-
+    
     glm::vec4 spheres[NB_SPHERE]; //a sphere is a vec4 => the first 3 are coordinate and last one is raidus
     glm::vec4 planes[NB_PLANE]; //xyz normal, w offset
     glm::vec3 tetrahedron[4];
+    int mat_index[12] = {0};
     
 
     void generate_random_spheres(){
@@ -423,6 +424,18 @@ namespace ui{
             if(ImGui::TreeNode("Materials list")){
                 mat::uiMat();
                 HelpMarker("useless as of know, already sent per frame");
+                ImGui::TreePop();
+            }
+
+            if(ImGui::TreeNode("Materials set")){
+                for(int i=0; i < NB_SPHERE; i++){
+                    ImGui::InputInt("sphere##"+i, geo::mat_index+i);
+                    
+                }
+                for(int i=NB_SPHERE; i < NB_SPHERE + NB_PLANE; i++){
+                    ImGui::InputInt("plane##"+i, geo::mat_index+i);
+                }
+                ImGui::InputInt("tetra", geo::mat_index+11);
                 ImGui::TreePop();
             }
         }

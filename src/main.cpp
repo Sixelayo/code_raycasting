@@ -122,6 +122,7 @@ int main(int argc, char* argv[]) {
             glUniform4fv(glGetUniformLocation(prog::prog1, "spheres"), NB_SPHERE, glm::value_ptr(geo::spheres[0]));
             glUniform4fv(glGetUniformLocation(prog::prog1, "planes"), NB_PLANE, glm::value_ptr(geo::planes[0]));
             glUniform3fv(glGetUniformLocation(prog::prog1, "tetra"), 4, glm::value_ptr(geo::tetrahedron[0]));
+            glUniform1iv(glGetUniformLocation(prog::prog1, "mat_index"), 12, geo::mat_index);
             
             //send lights info to GPU
             glUniform3fv(glGetUniformLocation(prog::prog1, "light_pos"), 1, glm::value_ptr(gbl::light));

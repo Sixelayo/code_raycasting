@@ -8,7 +8,7 @@
             "args": [
                 "-S ${fileDirname}/..",
                 "-B ${fileDirname}/../build",
-                "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+                "-DCMAKE_TOOLCHAIN_FILE=O:/vcpkg/scripts/buildsystems/vcpkg.cmake"
             ],
             "group": {
                 "kind": "build",
