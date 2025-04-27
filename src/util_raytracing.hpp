@@ -38,6 +38,8 @@ namespace gbl{
     float* controlled; //a pointer to a float 3 that keyboard controls
 
     int rec_depth = 1;
+    float shadow_size = 0.1;
+    int SOFT_SHADOW_SAMPLE = 100;
 }
 
 namespace shaders{
@@ -251,6 +253,7 @@ namespace util{
         glUniform1i(glGetUniformLocation(prog::prog1, "shadowMode"), gbl::curr_shadow);        
         glUniform1i(glGetUniformLocation(prog::prog1, "scene"), gbl::curr_scene);      
         glUniform1i(glGetUniformLocation(prog::prog1, "rec_depth"), gbl::rec_depth);      
+        glUniform1f(glGetUniformLocation(prog::prog1, "SHADOW_SIZE"), gbl::shadow_size);
     }
 
 }
@@ -411,6 +414,15 @@ namespace ui{
             const char* item_cmb2[] =  {"None", "Hard", "Soft"};
             if(ImGui::Combo("Shadow mode : ", (int*)&gbl::curr_shadow, item_cmb2, IM_ARRAYSIZE(item_cmb2))){
                 glUniform1i(glGetUniformLocation(prog::prog1, "shadowMode"), gbl::curr_shadow);
+            }
+            if(gbl::curr_shadow == 2){
+                if(ImGui::DragFloat("soft shadow size", &gbl::shadow_size, 0.01f,0.0f, 2.5f)){
+                    glUniform1f(glGetUniformLocation(prog::prog1, "SHADOW_SIZE"), gbl::shadow_size);
+                }
+                if (ImGui::InputInt("soft shadow samples count", &gbl::SOFT_SHADOW_SAMPLE)){
+                    glUniform1i(glGetUniformLocation(prog::prog1, "SOFT_SHADOW_SAMPLE"), gbl::SOFT_SHADOW_SAMPLE);
+                }
+                
             }
 
             ImGui::Separator();
