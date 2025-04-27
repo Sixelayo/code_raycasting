@@ -482,7 +482,10 @@ namespace ui{
             ImGui::SameLine();
             if(ImGui::Button("scene 2")) geo::init_scene2();
             ImGui::SameLine();
-            if(ImGui::Button("scene 3")) gbl::curr_scene = 3;
+            if(ImGui::Button("scene 3")) {
+                gbl::curr_scene = 3;
+                glUniform1i(glGetUniformLocation(prog::prog1, "scene"), gbl::curr_scene);
+            }
 
             if(ImGui::TreeNode("spheres")){
                 static int focus_i=0;

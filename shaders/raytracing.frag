@@ -390,6 +390,40 @@ vec3 trace1(vec3 ray_src, vec3 ray_dir){
 }
 
 
+struct Hit {
+    float t; // distance
+    vec3 normal; // surface normal
+    int mat; // surface material index
+};struct Roth {
+    int n;
+    Hit hit[8]; // max 8 hit points
+};// CSG filters
+Roth unionCSG (Roth r1, Roth r2) {
+
+}
+Roth intersectionCSG (Roth r1, Roth r2) {
+
+}
+Roth complementCSG (Roth r) {
+
+}
+Roth differenceCSG (Roth r1, Roth r2) {
+
+}
+// return the intersection points of a ray with a sphere as hits
+Roth raySphere(vec3 rayPos, vec3 rayDir, vec3 sphPos, float sphRad, int mat){
+
+}
+// compute Roth of each sphere, assemble CSG, return ray-CSG intersection
+float rayCSG(vec3 rayPos, vec3 rayDir, out vec3 intersecPt, out vec3 normal, out int materialIndex){
+    
+}
+
+void main_csg(){
+
+}
+
+
 
 
 void main(){
@@ -398,6 +432,12 @@ void main(){
 
     //Construct a primary ray going through UV coordinate (x,y)
     vec3 main_dir = UV.x*cam_right + UV.y*cam_up - cam_distance*cam_forward;
+
+
+    if(scene == 3){
+        main_csg();
+        return;
+    }
     
     vec3 pt, norm;
     int matId;
