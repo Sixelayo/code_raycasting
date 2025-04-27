@@ -398,32 +398,208 @@ struct Hit {
     int n;
     Hit hit[8]; // max 8 hit points
 };// CSG filters
-Roth unionCSG (Roth r1, Roth r2) {
 
+Roth unionCSG(Roth r1, Roth r2) {
+    Roth r;
+    r.n = 0;
+    int i = 0;
+    int j = 0;
+    bool r1in = false; // Tracks if ray is inside r1
+    bool r2in = false; // Tracks if ray is inside r2
+    while(i < r1.n || j < r2.n) {
+        bool takeR1 = false;
+        if(i < r1.n && //something left on 1
+            (j >= r2.n || //nothing left on 2
+                        r1.hit[i].t < r2.hit[j].t) //hit on r1 closing than hit on r2
+            ) {
+            takeR1 = true;
+        }
+        if(takeR1) {
+            r1in = !r1in;
+            if(!r2in) r.hit[r.n++] = r1.hit[i];
+            i++;
+        } else {
+            r2in = !r2in;
+            if(!r1in) r.hit[r.n++] = r2.hit[j];
+            j++;
+        }
+    }
+    return r;
 }
-Roth intersectionCSG (Roth r1, Roth r2) {
 
+Roth intersectionCSG(Roth r1, Roth r2){
+    Roth r;
+    r.n = 0;
+
+    int i = 0;
+    int j = 0;
+    bool r1in = false; // Tracks if ray is inside r1
+    bool r2in = false; // Tracks if ray is inside r2
+
+    while (i < r1.n || j < r2.n) {
+        // Determine which hit to process next based on t value
+        bool takeR1 = false;
+        if (i < r1.n && (j >= r2.n || r1.hit[i].t < r2.hit[j].t)) {
+            takeR1 = true;
+        }
+
+        // Process the next hit point
+        if (takeR1) {
+            // Toggle r1in state: entering or exiting r1
+            r1in = !r1in;
+            // Check if we are entering or exiting the intersection
+            if (r2in) { // Only output if inside r2
+                r.hit[r.n] = r1.hit[i];
+                r.n++;
+            }
+            i++;
+        } else {
+            // Toggle r2in state: entering or exiting r2
+            r2in = !r2in;
+            // Check if we are entering or exiting the intersection
+            if (r1in) { // Only output if inside r1
+                r.hit[r.n] = r2.hit[j];
+                r.n++;
+            }
+            j++;
+        }
+    }
+
+    return r;
 }
-Roth complementCSG (Roth r) {
 
-}
-Roth differenceCSG (Roth r1, Roth r2) {
+Roth complementCSG(Roth r) {
+    Roth result;
+    result.n = 0;
 
-}
-// return the intersection points of a ray with a sphere as hits
-Roth raySphere(vec3 rayPos, vec3 rayDir, vec3 sphPos, float sphRad, int mat){
+    // Copy hits in reverse order with reversed normals
+    for (int i = 0; i < r.n; i++) {
+        result.hit[i].t = r.hit[r.n - 1 - i].t;
+        result.hit[i].normal = -r.hit[r.n - 1 - i].normal; // Reverse normal
+        result.hit[i].mat = r.hit[r.n - 1 - i].mat; // Keep material
+        result.n++;
+    }
 
-}
-// compute Roth of each sphere, assemble CSG, return ray-CSG intersection
-float rayCSG(vec3 rayPos, vec3 rayDir, out vec3 intersecPt, out vec3 normal, out int materialIndex){
-    
-}
-
-void main_csg(){
-
+    return result;
 }
 
+Roth differenceCSG(Roth r1, Roth r2) {
+    Roth r;
+    r.n = 0;
 
+    int i = 0;
+    int j = 0;
+    bool r1in = false; // Tracks if ray is inside r1
+    bool r2in = false; // Tracks if ray is inside r2 (for complement, we want !r2in)
+
+    float r2dist=-1;
+
+    while (i < r1.n || j < r2.n) {
+        // Determine which hit to process next based on t value
+        bool takeR1 = false;
+        if (i < r1.n && (j >= r2.n || r1.hit[i].t < r2.hit[j].t)) {
+            takeR1 = true;
+        }
+
+        if (takeR1) {
+            // Process r1 hit: toggle r1in
+            r1in = !r1in;
+            // Output if inside r1 and outside r2 (i.e., inside complement of r2)
+            if (!r2in) {
+                r.hit[r.n] = r1.hit[i];
+                //r.hit[r.n].mat = 4; //debug
+                r.n++;
+            }
+            i++;
+        } else {
+            // Process r2 hit: toggle r2in (complement means we're interested in !r2in)
+            r2in = !r2in;
+            // Output if inside r1 and outside r2
+            if (r1in) {
+                r.hit[r.n] = r2.hit[j];
+                r.hit[r.n].normal = -r2.hit[j].normal; // Reverse normal for complement
+                r.hit[r.n].mat = r2.hit[j].mat; // Reverse normal for complement
+                r.n++;
+            }
+            j++;
+        }
+    }
+
+    return r;
+}
+
+Roth raySphereCSG(vec3 rayPos, vec3 rayDir, vec3 sphPos, float sphRad, int mat) {
+    Roth r;
+    r.n = 0;
+
+    vec3 oMc = rayPos - sphPos;
+
+    float a = dot(rayDir, rayDir);
+    float b = 2.0 * dot(oMc, rayDir);
+    float c = dot(oMc, oMc) - sphRad * sphRad;
+
+    float d = b * b - 4.0 * a * c;
+    if(d > 0.0) {
+        float sqrt_d = sqrt(d);
+        float t1 = (-b - sqrt_d) / (2.0 * a);
+        float t2 = (-b + sqrt_d) / (2.0 * a);
+
+        if(t1 > 0.0) {
+            r.hit[r.n].t = t1;
+            r.hit[r.n].normal = normalize((rayPos + t1 * rayDir) - sphPos);
+            r.hit[r.n].mat = mat;
+            r.n++;
+        }
+        if(t2 > 0.0) {
+            r.hit[r.n].t = t2;
+            r.hit[r.n].normal = normalize((rayPos + t2 * rayDir) - sphPos);
+            r.hit[r.n].mat = mat;
+            r.n++;
+        }
+    }
+    return r;
+}
+
+float rayCSG(vec3 rayPos, vec3 rayDir, out vec3 intersecPt, out vec3 normal, out int materialIndex) { 
+    Roth s1 = raySphereCSG(rayPos, rayDir, vec3(-1, 2, 0), 1.5, 1); //red
+    Roth s2 = raySphereCSG(rayPos, rayDir, vec3(1, 2, 0), 1.5, 1);
+    Roth s3 = raySphereCSG(rayPos, rayDir, vec3(0,2.7,-0.3), 0.8, 2); //blue 
+    Roth s4 = raySphereCSG(rayPos, rayDir, vec3(0,2.8,0.3), 0.8, 3); //green
+    Roth step1 = intersectionCSG(s1,s2);
+    Roth step2 = unionCSG(step1, s3);
+    Roth r = differenceCSG(step2, s4);
+
+    if(r.n > 0){
+        float tMin = r.hit[0].t;
+        intersecPt = rayPos + tMin * rayDir;
+        normal = r.hit[0].normal;
+        materialIndex = r.hit[0].mat;
+        return tMin;
+    } else {
+        return -1;
+    }
+}
+
+void main_csg() {
+    vec2 UV = computeUV();
+    vec3 rayOrigin = cam_pos;
+    vec3 rayDirection = normalize(UV.x * cam_right + UV.y * cam_up - cam_distance * cam_forward);
+
+    vec3 p, n;
+    int mat;
+    float t = rayCSG(rayOrigin, rayDirection, p, n, mat);
+
+    if(t > 0.0) {
+        //fColor = shade(p, n, mat);
+        if(mat ==1) fColor = vec4(1,0,0,1);
+        if(mat ==2) fColor = vec4(0,0,1,1);
+        if(mat ==3) fColor = vec4(0,1,0,1);
+        if(mat ==4) fColor = vec4(1,1,1,1);
+        //fColor = vec4(abs(n), 1);
+    } else {
+        fColor = vec4(0,0,0,1);
+    }
+}
 
 
 void main(){
@@ -438,6 +614,7 @@ void main(){
         main_csg();
         return;
     }
+    //rest of that is not about csg :
     
     vec3 pt, norm;
     int matId;
