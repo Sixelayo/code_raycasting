@@ -25,6 +25,9 @@ uniform int shadingMode;
 uniform int shadowMode; 
 uniform int scene;
 uniform int rec_depth;
+uniform int motion_blurr = 0;
+uniform vec3 mb_dir = vec3(1,0,0);
+uniform int MOTION_BLURR_SAMPLE = 25;
 
 
 //int shadowMode = 0; //what is going on ? ? ?
@@ -388,8 +391,6 @@ vec3 trace1(vec3 ray_src, vec3 ray_dir){
 
 
 
-
-
 void main(){
     vec2 UV = computeUV();
     _randomvalue = hash12(UV);
@@ -400,19 +401,46 @@ void main(){
     vec3 pt, norm;
     int matId;
 
-    //compute nearest intersection
-    float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
-    //compute shadow ray (depending on mode)
-    vec3 shading = evalColor(t, pt, norm, matId);
-    if(t > 0 && matId>=0){ //only multi ray if hit and regular material negative material index use directly eval
-        shading = (1-cReflects[matId]-cRefracts[matId])*shading;
-        if(rec_depth >= 1){
-            if (cReflects[matId]>0.001){
-                shading += cReflects[matId] * trace1(pt+0.0001*norm, reflect(main_dir, norm));
-                // vec3 V = main_dir; vec3 N = norm;
-                // shading += cReflects[matId] * trace1(pt+0.0001*norm, V - 2 * dot(V,N)*N);
-            }if (cRefracts[matId]>0.001){
-                shading += cRefracts[matId] * trace1(pt-0.0001*norm, refract(main_dir, norm, Refrindexs[matId]));
+    vec3 shading = vec3(0);
+
+
+    if(motion_blurr>0){
+        vec3 add_motion = vec3(0);
+        for(int i=0; i< MOTION_BLURR_SAMPLE; i++){
+            vec3 add_motion = _randomvalue * mb_dir;
+            _randomvalue = hash11(_randomvalue);
+            float t = computeNearestIntersection(cam_pos+add_motion, main_dir , pt, norm, matId);
+            //compute shadow ray (depending on mode)
+            shading += evalColor(t, pt, norm, matId);
+            if(t > 0 && matId>=0){ //only multi ray if hit and regular material negative material index use directly eval
+                shading = (1-cReflects[matId]-cRefracts[matId])*shading;
+                if(rec_depth >= 1){
+                    if (cReflects[matId]>0.001){
+                        shading += cReflects[matId] * trace1(pt+0.0001*norm, reflect(main_dir, norm));
+                        // vec3 V = main_dir; vec3 N = norm;
+                        // shading += cReflects[matId] * trace1(pt+0.0001*norm, V - 2 * dot(V,N)*N);
+                    }if (cRefracts[matId]>0.001){
+                        shading += cRefracts[matId] * trace1(pt-0.0001*norm, refract(main_dir, norm, Refrindexs[matId]));
+                    }
+                }
+            }
+        }
+        shading /= MOTION_BLURR_SAMPLE;
+    } else{//no motion blurr
+        //compute nearest intersection
+        float t = computeNearestIntersection(cam_pos, main_dir , pt, norm, matId);
+        //compute shadow ray (depending on mode)
+        shading = evalColor(t, pt, norm, matId);
+        if(t > 0 && matId>=0){ //only multi ray if hit and regular material negative material index use directly eval
+            shading = (1-cReflects[matId]-cRefracts[matId])*shading;
+            if(rec_depth >= 1){
+                if (cReflects[matId]>0.001){
+                    shading += cReflects[matId] * trace1(pt+0.0001*norm, reflect(main_dir, norm));
+                    // vec3 V = main_dir; vec3 N = norm;
+                    // shading += cReflects[matId] * trace1(pt+0.0001*norm, V - 2 * dot(V,N)*N);
+                }if (cRefracts[matId]>0.001){
+                    shading += cRefracts[matId] * trace1(pt-0.0001*norm, refract(main_dir, norm, Refrindexs[matId]));
+                }
             }
         }
     }

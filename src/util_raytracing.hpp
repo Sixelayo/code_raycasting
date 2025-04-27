@@ -40,6 +40,10 @@ namespace gbl{
     int rec_depth = 1;
     float shadow_size = 0.1;
     int SOFT_SHADOW_SAMPLE = 100;
+
+    bool motion_blurr = false;
+    int MOTION_BLURR_SAMPLES = 25;
+    glm::vec3 mb_dir = glm::vec3(1,0,0);
 }
 
 namespace shaders{
@@ -423,6 +427,22 @@ namespace ui{
                     glUniform1i(glGetUniformLocation(prog::prog1, "SOFT_SHADOW_SAMPLE"), gbl::SOFT_SHADOW_SAMPLE);
                 }
                 
+            }
+            if(ImGui::Checkbox("motion blur", &gbl::motion_blurr)){
+                glUniform1i(glGetUniformLocation(prog::prog1, "motion_blurr"), gbl::motion_blurr ? 1 : 0);
+            }
+            if(gbl::motion_blurr){
+                if(ImGui::InputFloat3("motion vec", glm::value_ptr(gbl::mb_dir))){
+                    glUniform3fv(glGetUniformLocation(prog::prog1, "mb_dir"), 1, glm::value_ptr(gbl::mb_dir));
+                }
+                ImGui::SameLine();
+                if(ImGui::Button("normalize")) {
+                    gbl::mb_dir = glm::normalize(gbl::mb_dir);
+                    glUniform3fv(glGetUniformLocation(prog::prog1, "mb_dir"), 1, glm::value_ptr(gbl::mb_dir));
+                }
+                if (ImGui::InputInt("motion blurr samples count", &gbl::MOTION_BLURR_SAMPLES)){
+                    glUniform1i(glGetUniformLocation(prog::prog1, "MOTION_BLURR_SAMPLE"), gbl::MOTION_BLURR_SAMPLES);
+                }
             }
 
             ImGui::Separator();
