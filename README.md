@@ -1,5 +1,9 @@
 > Code was somewhat decent until I came back after 3 week and now its an absolute mess :/
 
+# showcase
+
+https://www.youtube.com/watch?v=8hRGCSX2EUw
+
 # compile
 
 run vs code tasks
