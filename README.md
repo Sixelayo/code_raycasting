@@ -1,12 +1,5 @@
 > Code was somewhat decent until I came back after 3 week and now its an absolute mess :/
 
-# current
-
-- la projection est cassé
-- bug : tache spéculaire à des endroit random ?
-- bug : les ombres sont cassé
-- profondeur 2 dans le raytracing
-
 # compile
 
 run vs code tasks
@@ -28,18 +21,6 @@ via UI - anything
 
 # todo
 
-## mandatory
-
-- gestion mat ok pour tt les exemples de la scene 2
-- current 3-1 : position des sphere et tt les cas à exposer
-
-- antialiasing + CSG (tp2-3)
-
-
-## optionel
-
-- lafortune brdf !
-
 ## bug
 
 - on peut pas repasser de la scene 2 vers la 1 (materiaux détruit)
@@ -47,7 +28,4 @@ via UI - anything
 Si le block else qui gère les soft shadow tout est cassé, même lorsque le code n'est pas appelé.
 En particulier si 2 fonction nearest sont appelé ça cassse.. Déclafier numcalls en uniform permet d'empêcher le compilateur de déroulé la boucle for.Bug réaparu par la suite : certaines sphere s'affiche au dessu d'autre dans l'ordre d'affichage (wtf) : on peut voir la 7 à travers la 5 ?? vraiment un bug compilateur ? -> à priori c'était les nested out
 
-# reminder
-
-- 1-4 down from right to left
 
